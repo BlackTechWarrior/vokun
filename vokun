@@ -3,7 +3,7 @@
 # https://github.com/blacktechwarrior/vokun
 set -euo pipefail
 
-VOKUN_VERSION="0.1.0"
+VOKUN_VERSION="0.2.0"
 
 # --- Path detection ---
 
@@ -71,12 +71,23 @@ source "${VOKUN_LIB_DIR}/core.sh"
 source "${VOKUN_LIB_DIR}/state.sh"
 # shellcheck source=lib/bundles.sh
 source "${VOKUN_LIB_DIR}/bundles.sh"
+# shellcheck source=lib/bundle_mgmt.sh
+source "${VOKUN_LIB_DIR}/bundle_mgmt.sh"
 # shellcheck source=lib/aliases.sh
 source "${VOKUN_LIB_DIR}/aliases.sh"
+# shellcheck source=lib/sync.sh
+source "${VOKUN_LIB_DIR}/sync.sh"
+# shellcheck source=lib/aur.sh
+source "${VOKUN_LIB_DIR}/aur.sh"
+# shellcheck source=lib/interactive.sh
+source "${VOKUN_LIB_DIR}/interactive.sh"
 
 # --- Initialize ---
 vokun::core::init
 vokun::state::init
+
+# --- First-run check ---
+vokun::interactive::first_run_check "${ARGS[0]:-}"
 
 # --- Dispatch ---
 command="${ARGS[0]:-help}"
@@ -90,6 +101,7 @@ case "$command" in
     list)       vokun::bundles::list "${ARGS[@]}" ;;
     info)       vokun::bundles::info "${ARGS[@]}" ;;
     search)     vokun::bundles::search "${ARGS[@]}" ;;
+    bundle)     vokun::bundle_mgmt::dispatch "${ARGS[@]}" ;;
 
     # Package aliases
     get)        vokun::aliases::get "${ARGS[@]}" ;;
@@ -106,6 +118,13 @@ case "$command" in
     recent)     vokun::aliases::recent "${ARGS[@]}" ;;
     foreign)    vokun::aliases::foreign "${ARGS[@]}" ;;
     explicit)   vokun::aliases::explicit "${ARGS[@]}" ;;
+
+    # AUR inspection
+    check)      vokun::aur::check "${ARGS[@]}" ;;
+    diff)       vokun::aur::diff "${ARGS[@]}" ;;
+
+    # Sync
+    sync)       vokun::sync::run "${ARGS[@]}" ;;
 
     # Help
     help)       vokun::core::help "${ARGS[@]}" ;;

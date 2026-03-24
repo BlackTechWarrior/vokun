@@ -87,8 +87,10 @@ vokun::state::add_bundle() {
 
     # Convert space-separated to JSON arrays
     local pkg_json skipped_json
+    # shellcheck disable=SC2086
     pkg_json=$(printf '%s\n' $packages | jq -R . | jq -s .)
     if [[ -n "$skipped" ]]; then
+        # shellcheck disable=SC2086
         skipped_json=$(printf '%s\n' $skipped | jq -R . | jq -s .)
     else
         skipped_json='[]'

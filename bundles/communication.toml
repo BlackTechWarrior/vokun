@@ -1,0 +1,20 @@
+[meta]
+name = "Communication"
+description = "Messaging, video conferencing, and team collaboration applications"
+tags = ["desktop", "social", "communication"]
+version = "1.0.0"
+
+[packages]
+signal-desktop = "End-to-end encrypted messaging app for private conversations and group chats"
+
+[packages.optional]
+element-desktop = "Matrix client for decentralized, federated chat with end-to-end encryption"
+
+[packages.aur]
+discord = "Voice, video, and text chat platform popular with gaming and tech communities"
+slack-desktop = "Team messaging platform for workplace communication and collaboration"
+telegram-desktop = "Cloud-based messaging app with fast syncing across devices and large group support"
+zoom = "Video conferencing platform for meetings, webinars, and screen sharing"
+
+[hooks]
+post_install = ["echo 'Communication apps installed. Sign in to each application to connect with your contacts.'"]

@@ -1,0 +1,19 @@
+[meta]
+name = "Web Browsers"
+description = "Web browsers for everyday browsing, privacy, and development"
+tags = ["desktop", "web", "browsers"]
+version = "1.0.0"
+
+[packages]
+firefox = "Open-source web browser with strong privacy features and extension support"
+
+[packages.optional]
+chromium = "Open-source browser that forms the base of Google Chrome, without proprietary components"
+torbrowser-launcher = "Launcher for Tor Browser, enabling anonymous and censorship-resistant web browsing"
+
+[packages.aur]
+brave-bin = "Privacy-focused Chromium-based browser with built-in ad and tracker blocking"
+google-chrome = "Google's web browser with built-in sync, translation, and media codec support"
+
+[hooks]
+post_install = ["echo 'Browsers installed. Set your default browser in your desktop environment settings.'"]

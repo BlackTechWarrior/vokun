@@ -1,0 +1,20 @@
+[meta]
+name = "Office Suite"
+description = "Document editing, email, PDF viewing, and spell checking for everyday productivity"
+tags = ["productivity", "office"]
+version = "1.0.0"
+
+[packages]
+libreoffice-fresh = "Full-featured office suite with writer, calc, impress, and draw applications"
+thunderbird = "Feature-rich email client with calendar, contacts, and RSS feed support"
+evince = "Lightweight PDF and document viewer for GNOME-based desktops"
+okular = "Versatile document viewer supporting PDF, ePub, and more for KDE-based desktops"
+hunspell = "Spell checking engine used by LibreOffice, Firefox, and other applications"
+hunspell-en_us = "US English dictionary for hunspell-based spell checking across applications"
+
+[packages.optional]
+calligra = "Alternative office suite from KDE with unique tools like a flowchart editor"
+gnucash = "Double-entry financial accounting application for personal and small business use"
+
+[hooks]
+post_install = ["echo 'Office suite installed. Launch LibreOffice from your application menu or run libreoffice to get started.'"]

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2034
 # vokun - TOML parser (subset)
 # Handles: [section] headers, key = "value", key = ["array"], comments
 # Uses associative arrays (bash 4+)
@@ -209,6 +210,7 @@ vokun::toml::_add_section_key() {
 # Usage: vokun::toml::_parse_array_items "\"a\", \"b\"" varname
 vokun::toml::_parse_array_items() {
     local input="$1"
+    # shellcheck disable=SC2178
     local -n _result="$2"
 
     # Extract all quoted strings

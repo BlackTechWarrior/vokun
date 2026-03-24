@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2034
 # vokun - Core utilities
 # Logging, config, AUR helper detection, help system
 
@@ -240,6 +241,8 @@ ${VOKUN_COLOR_BOLD}BUNDLE COMMANDS${VOKUN_COLOR_RESET}
     ${VOKUN_COLOR_GREEN}list${VOKUN_COLOR_RESET}                     List available bundles
     ${VOKUN_COLOR_GREEN}info${VOKUN_COLOR_RESET}    <bundle>         Show bundle details
     ${VOKUN_COLOR_GREEN}search${VOKUN_COLOR_RESET}  <keyword>        Search bundles by name, tag, or package
+    ${VOKUN_COLOR_GREEN}bundle${VOKUN_COLOR_RESET}  <action>         Manage bundles ${VOKUN_COLOR_DIM}(create, add, rm, edit, delete)${VOKUN_COLOR_RESET}
+    ${VOKUN_COLOR_GREEN}sync${VOKUN_COLOR_RESET}                     Detect packages not tracked in any bundle
 
 ${VOKUN_COLOR_BOLD}PACKAGE COMMANDS${VOKUN_COLOR_RESET}
     ${VOKUN_COLOR_CYAN}get${VOKUN_COLOR_RESET}     <pkg>            Install a package ${VOKUN_COLOR_DIM}(pacman -S)${VOKUN_COLOR_RESET}
@@ -256,6 +259,8 @@ ${VOKUN_COLOR_BOLD}MAINTENANCE${VOKUN_COLOR_RESET}
     ${VOKUN_COLOR_YELLOW}recent${VOKUN_COLOR_RESET}                   Show recently installed packages
     ${VOKUN_COLOR_YELLOW}foreign${VOKUN_COLOR_RESET}                  List AUR/foreign packages
     ${VOKUN_COLOR_YELLOW}explicit${VOKUN_COLOR_RESET}                 List explicitly installed packages
+    ${VOKUN_COLOR_YELLOW}check${VOKUN_COLOR_RESET}   <pkg>            Check AUR package trust and integrity
+    ${VOKUN_COLOR_YELLOW}diff${VOKUN_COLOR_RESET}    <pkg>            Show AUR package PKGBUILD
 
 ${VOKUN_COLOR_BOLD}OPTIONS${VOKUN_COLOR_RESET}
     --yes, -y                Skip confirmation prompts
@@ -467,6 +472,46 @@ List all explicitly installed packages (not pulled in as dependencies).
 ${VOKUN_COLOR_DIM}Equivalent to: pacman -Qe${VOKUN_COLOR_RESET}
 EOF
             ;;
+        bundle)
+            cat <<EOF
+${VOKUN_COLOR_BOLD}vokun bundle${VOKUN_COLOR_RESET} <action> [args...]
+
+Manage custom bundles.
+
+${VOKUN_COLOR_BOLD}Actions:${VOKUN_COLOR_RESET}
+    create <name>              Create a new custom bundle interactively
+    add <bundle> <pkg> ...     Add packages to a bundle
+    rm <bundle> <pkg> ...      Remove packages from a bundle
+    edit <bundle>              Edit a bundle (fzf picker or \$EDITOR)
+    delete <name>              Delete a custom bundle
+EOF
+            ;;
+        sync)
+            cat <<EOF
+${VOKUN_COLOR_BOLD}vokun sync${VOKUN_COLOR_RESET} [--auto]
+
+Detect explicitly installed packages that are not tracked in any bundle.
+Offers to add them to a bundle, create a new bundle, or mark as unmanaged.
+
+${VOKUN_COLOR_BOLD}Flags:${VOKUN_COLOR_RESET}
+    --auto    List untracked packages without prompting
+EOF
+            ;;
+        check)
+            cat <<EOF
+${VOKUN_COLOR_BOLD}vokun check${VOKUN_COLOR_RESET} <package>
+
+Check the trust and integrity of an AUR package. Shows votes, maintainer,
+popularity, last update date, and a color-coded trust level.
+EOF
+            ;;
+        diff)
+            cat <<EOF
+${VOKUN_COLOR_BOLD}vokun diff${VOKUN_COLOR_RESET} <package>
+
+Show the PKGBUILD for an AUR package for manual review.
+EOF
+            ;;
         *)
             vokun::core::error "Unknown command: $cmd"
             vokun::core::log "Run 'vokun help' for a list of commands."
@@ -482,9 +527,10 @@ vokun::core::unknown() {
     vokun::core::error "Unknown command: $cmd"
     vokun::core::log ""
     vokun::core::log "Available commands:"
-    vokun::core::log "  install, remove, list, info, search"
+    vokun::core::log "  install, remove, list, info, search, bundle, sync"
     vokun::core::log "  get, yeet, find, which, owns, update"
     vokun::core::log "  orphans, cache, size, recent, foreign, explicit"
+    vokun::core::log "  check, diff"
     vokun::core::log ""
     vokun::core::log "Run 'vokun help' for more information."
     return 1

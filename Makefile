@@ -12,11 +12,9 @@ LICENSEDIR = $(DESTDIR)$(PREFIX)/share/licenses/vokun
 install:
 	@echo ":: Installing vokun to $(PREFIX)..."
 	install -Dm755 vokun                     "$(BINDIR)/vokun"
-	install -Dm644 lib/core.sh               "$(SHARE_DIR)/lib/core.sh"
-	install -Dm644 lib/toml.sh               "$(SHARE_DIR)/lib/toml.sh"
-	install -Dm644 lib/state.sh              "$(SHARE_DIR)/lib/state.sh"
-	install -Dm644 lib/bundles.sh            "$(SHARE_DIR)/lib/bundles.sh"
-	install -Dm644 lib/aliases.sh            "$(SHARE_DIR)/lib/aliases.sh"
+	@for f in lib/*.sh; do \
+		install -Dm644 "$$f" "$(SHARE_DIR)/$$f"; \
+	done
 	@for f in bundles/*.toml; do \
 		install -Dm644 "$$f" "$(SHARE_DIR)/$$f"; \
 	done
@@ -50,7 +48,7 @@ test:
 
 lint:
 	@echo ":: Running shellcheck..."
-	shellcheck -s bash vokun lib/*.sh
+	shellcheck -x -s bash vokun lib/*.sh
 	@echo ":: All files pass shellcheck."
 
 clean:

@@ -1,0 +1,21 @@
+[meta]
+name = "Media Playback"
+description = "Video and audio players for local media files and streaming services"
+tags = ["desktop", "media", "entertainment"]
+version = "1.0.0"
+
+[packages]
+vlc = "Versatile media player that handles nearly every audio and video format out of the box"
+mpv = "Lightweight and highly configurable video player with excellent codec support"
+audacious = "Lightweight audio player with a classic interface and plugin support for many formats"
+celluloid = "Simple GTK frontend for mpv that provides a clean graphical video playback experience"
+
+[packages.optional]
+deadbeef = "Highly customizable audio player with tabbed playlists and extensive plugin support"
+kodi = "Full-featured media center for organizing and playing video, music, and photos"
+
+[packages.aur]
+spotify = "Music streaming service with access to millions of songs, podcasts, and playlists"
+
+[hooks]
+post_install = ["echo 'Media players installed. Set your preferred default player in your desktop environment settings.'"]

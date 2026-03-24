@@ -4,7 +4,6 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![CI](https://github.com/blacktechwarrior/vokun/actions/workflows/ci.yml/badge.svg)](https://github.com/blacktechwarrior/vokun/actions/workflows/ci.yml)
-[![AUR](https://img.shields.io/aur/version/vokun)](https://aur.archlinux.org/packages/vokun)
 
 ---
 

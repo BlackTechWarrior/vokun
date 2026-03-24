@@ -491,6 +491,7 @@ vokun::bundles::install() {
         while IFS= read -r hook_cmd; do
             [[ -z "$hook_cmd" ]] && continue
             vokun::core::show_cmd "$hook_cmd"
+            # shellcheck disable=SC2294
             eval "$hook_cmd"
         done <<< "$hooks"
     fi
