@@ -1,0 +1,144 @@
+// Vokun docs — GitHub dark mode palette
+// No pure white anywhere. Softer contrast, better readability.
+
+// ── Base colors ──
+
+$body-text: #c9d1d9;
+$heading-text: #e6edf3;
+$bg-main: #161b22;
+$bg-sidebar: #0d1117;
+$link-color: #58a6ff;
+$border-color: #30363d;
+$code-bg: #1c2128;
+$inline-code-bg: rgba(110, 118, 129, 0.15);
+$sidebar-inactive: #8b949e;
+$footer-text: #484f58;
+
+// ── Body ──
+
+body {
+  background-color: $bg-main;
+  color: $body-text;
+  font-size: 17px;
+  line-height: 1.7;
+}
+
+// ── Typography ──
+
+h1, h2, h3, h4, h5, h6 {
+  color: $heading-text;
+}
+
+// ── Links ──
+
+a {
+  color: $link-color;
+  transition: color 0.15s ease;
+
+  &:hover {
+    color: lighten($link-color, 12%);
+  }
+}
+
+// ── Code ──
+
+code {
+  font-size: 0.88em;
+  padding: 0.15em 0.4em;
+  border-radius: 6px;
+  background-color: $inline-code-bg;
+  border: 1px solid $border-color;
+  color: $body-text;
+}
+
+pre {
+  background-color: $code-bg;
+  border: 1px solid $border-color;
+  border-radius: 6px;
+  padding: 1.2em;
+
+  code {
+    font-size: 15px;
+    padding: 0;
+    border: none;
+    background: none;
+  }
+}
+
+// ── Sidebar / Navigation ──
+
+.side-bar {
+  background-color: $bg-sidebar;
+  border-right: 1px solid $border-color;
+}
+
+.nav-list .nav-list-item {
+  .nav-list-link {
+    color: $sidebar-inactive;
+    transition: color 0.15s ease;
+
+    &:hover {
+      color: $heading-text;
+    }
+
+    &.active {
+      color: $heading-text;
+      font-weight: 600;
+    }
+  }
+}
+
+// ── Main content ──
+
+.main-content-wrap {
+  background-color: $bg-main;
+}
+
+.main-content {
+  background-color: $bg-main;
+}
+
+// ── Tables ──
+
+table {
+  border-color: $border-color;
+}
+
+th {
+  background-color: $code-bg;
+  border-color: $border-color;
+  color: $heading-text;
+  padding: 0.75em 1em;
+}
+
+td {
+  border-color: $border-color;
+  padding: 0.65em 1em;
+}
+
+// ── Horizontal rules ──
+
+hr {
+  border-color: $border-color;
+}
+
+// ── Footer ──
+
+.footer {
+  color: $footer-text;
+  border-top: 1px solid $border-color;
+}
+
+// ── Search ──
+
+.search-input {
+  background-color: $code-bg;
+  border: 1px solid $border-color;
+  color: $body-text;
+}
+
+// ── Breadcrumbs / page header ──
+
+.breadcrumb-nav {
+  color: $sidebar-inactive;
+}
