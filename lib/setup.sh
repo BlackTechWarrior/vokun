@@ -174,6 +174,14 @@ vokun::setup::uninstall() {
         fi
         printf '\n  Removing files manually would corrupt pacman'\''s database.\n'
 
+        # Hint about config directory
+        local config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/vokun"
+        if [[ -d "$config_dir" ]]; then
+            printf '\n  %sAfter uninstalling, your config directory will remain at:%s\n' "$VOKUN_COLOR_DIM" "$VOKUN_COLOR_RESET"
+            printf '    %s\n' "$config_dir"
+            printf '  To remove it: %srm -rf %s%s\n' "$VOKUN_COLOR_BOLD" "$config_dir" "$VOKUN_COLOR_RESET"
+        fi
+
         # Hint about AUR build cache
         local cache_dir="${HOME}/.cache/${aur_helper:-paru}/clone/vokun"
         if [[ -d "$cache_dir" ]]; then
