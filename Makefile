@@ -11,26 +11,24 @@ LICENSEDIR = $(DESTDIR)$(PREFIX)/share/licenses/vokun
 
 install:
 	@echo ":: Installing vokun to $(PREFIX)..."
-	install -Dm755 vokun                     "$(BINDIR)/vokun"
-	@for f in lib/*.sh; do \
-		install -Dm644 "$$f" "$(SHARE_DIR)/$$f"; \
-	done
-	@for f in bundles/*.toml; do \
-		install -Dm644 "$$f" "$(SHARE_DIR)/$$f"; \
-	done
-	install -Dm644 completions/vokun.bash    "$(BASH_COMP)/vokun"
-	install -Dm644 completions/_vokun         "$(ZSH_COMP)/_vokun"
-	install -Dm644 completions/vokun.fish    "$(FISH_COMP)/vokun.fish"
-	install -Dm644 LICENSE                   "$(LICENSEDIR)/LICENSE"
+	install -Dm755 vokun "$(BINDIR)/vokun"
+	install -d "$(SHARE_DIR)/lib"
+	install -d "$(SHARE_DIR)/bundles"
+	for f in lib/*.sh; do install -Dm644 "$$f" "$(SHARE_DIR)/$$f"; done
+	for f in bundles/*.toml; do install -Dm644 "$$f" "$(SHARE_DIR)/$$f"; done
+	install -Dm644 completions/vokun.bash "$(BASH_COMP)/vokun"
+	install -Dm644 completions/_vokun "$(ZSH_COMP)/_vokun"
+	install -Dm644 completions/vokun.fish "$(FISH_COMP)/vokun.fish"
+	install -Dm644 LICENSE "$(LICENSEDIR)/LICENSE"
 	@echo ":: vokun installed successfully."
 
 uninstall:
 	@echo ":: Removing vokun from $(PREFIX)..."
-	rm -f  "$(BINDIR)/vokun"
+	rm -f "$(BINDIR)/vokun"
 	rm -rf "$(SHARE_DIR)"
-	rm -f  "$(BASH_COMP)/vokun"
-	rm -f  "$(ZSH_COMP)/_vokun"
-	rm -f  "$(FISH_COMP)/vokun.fish"
+	rm -f "$(BASH_COMP)/vokun"
+	rm -f "$(ZSH_COMP)/_vokun"
+	rm -f "$(FISH_COMP)/vokun.fish"
 	rm -rf "$(LICENSEDIR)"
 	@echo ":: vokun removed."
 
