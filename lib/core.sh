@@ -391,13 +391,14 @@ vokun::core::help_command() {
     case "$cmd" in
         install)
             cat <<EOF
-${VOKUN_COLOR_BOLD}vokun install${VOKUN_COLOR_RESET} <bundle> [--yes]
+${VOKUN_COLOR_BOLD}vokun install${VOKUN_COLOR_RESET} <bundle> [bundle...] [--yes]
 
-Install all packages from a bundle. Shows each package with its description,
-highlights AUR packages, and shows optional packages separately.
+Install all packages from one or more bundles. Shows each package with its
+description, highlights AUR packages, and shows optional packages separately.
 
 ${VOKUN_COLOR_BOLD}Examples:${VOKUN_COLOR_RESET}
     vokun install coding                      # Install all packages
+    vokun install coding sysadmin             # Install multiple bundles
     vokun install coding --pick               # Interactively select which packages
     vokun install coding --exclude gdb,strace # Skip specific packages
     vokun install coding --only git,cmake     # Install only these from the bundle
@@ -412,13 +413,19 @@ EOF
             ;;
         remove)
             cat <<EOF
-${VOKUN_COLOR_BOLD}vokun remove${VOKUN_COLOR_RESET} <bundle>
+${VOKUN_COLOR_BOLD}vokun remove${VOKUN_COLOR_RESET} <bundle> [bundle...] [--dry-run] [--untrack]
 
 Remove packages that are unique to a bundle (not shared with other installed bundles).
-Shared packages are kept and listed.
+Shared packages are kept and listed. Supports multiple bundles at once.
 
 ${VOKUN_COLOR_BOLD}Examples:${VOKUN_COLOR_RESET}
-    vokun remove gaming
+    vokun remove gaming                       # Remove bundle and its packages
+    vokun remove gaming coding                # Remove multiple bundles
+    vokun remove sysadmin --untrack           # Remove from tracking only, keep packages
+
+${VOKUN_COLOR_BOLD}Flags:${VOKUN_COLOR_RESET}
+    --dry-run              Show what would happen without removing
+    --untrack              Remove from vokun tracking only, keep packages on system
 EOF
             ;;
         select)
@@ -482,7 +489,7 @@ EOF
             ;;
         yeet)
             cat <<EOF
-${VOKUN_COLOR_BOLD}vokun yeet${VOKUN_COLOR_RESET} <package> [package...]
+${VOKUN_COLOR_BOLD}vokun yeet${VOKUN_COLOR_RESET} <package> [package...] [--untrack]
 
 Remove packages along with their unneeded dependencies and config files.
 Warns if the package belongs to an installed bundle.
@@ -490,7 +497,11 @@ Warns if the package belongs to an installed bundle.
 ${VOKUN_COLOR_DIM}Equivalent to: sudo pacman -Rns <package>${VOKUN_COLOR_RESET}
 
 ${VOKUN_COLOR_BOLD}Examples:${VOKUN_COLOR_RESET}
-    vokun yeet firefox
+    vokun yeet firefox                        # Remove package from system
+    vokun yeet bat --untrack                  # Remove from bundle tracking only, keep installed
+
+${VOKUN_COLOR_BOLD}Flags:${VOKUN_COLOR_RESET}
+    --untrack              Remove from bundle tracking only, keep package on system
 EOF
             ;;
         find)

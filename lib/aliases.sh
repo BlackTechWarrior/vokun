@@ -64,26 +64,51 @@ vokun::aliases::get() {
 
 # --- vokun yeet ---
 vokun::aliases::yeet() {
-    if [[ $# -eq 0 ]]; then
-        vokun::core::error "Usage: vokun yeet <package> [package...]"
+    local untrack_only=false
+    local -a packages=()
+
+    for arg in "$@"; do
+        case "$arg" in
+            --untrack) untrack_only=true ;;
+            *) packages+=("$arg") ;;
+        esac
+    done
+
+    if [[ ${#packages[@]} -eq 0 ]]; then
+        vokun::core::error "Usage: vokun yeet <package> [package...] [--untrack]"
         return 1
     fi
 
-    # Check if any packages are in bundles
+    # Check if any packages are in bundles and remove from tracking
     local -a installed_bundles
     mapfile -t installed_bundles < <(vokun::state::get_installed_bundles)
 
-    for pkg in "$@"; do
+    for pkg in "${packages[@]}"; do
         for bundle in "${installed_bundles[@]}"; do
             local bundle_pkgs
             bundle_pkgs=$(vokun::state::get_bundle_packages "$bundle")
             if echo "$bundle_pkgs" | grep -qx "$pkg"; then
-                vokun::core::warn "'$pkg' belongs to bundle '$bundle'"
+                if [[ "$untrack_only" == true ]]; then
+                    # Remove package from bundle's tracked list
+                    local tmp
+                    tmp=$(mktemp)
+                    jq --arg b "$bundle" --arg p "$pkg" \
+                        '.installed_bundles[$b].packages = [.installed_bundles[$b].packages[] | select(. != $p)]' \
+                        "$VOKUN_STATE_FILE" > "$tmp" && mv "$tmp" "$VOKUN_STATE_FILE"
+                    vokun::core::success "Untracked '$pkg' from bundle '$bundle'."
+                else
+                    vokun::core::warn "'$pkg' belongs to bundle '$bundle'"
+                fi
             fi
         done
     done
 
-    vokun::core::run_pacman_only "-Rns" "$@" && vokun::core::log_action "yeet" "$*" ""
+    if [[ "$untrack_only" == true ]]; then
+        vokun::core::log_action "untrack" "${packages[*]}" ""
+        return 0
+    fi
+
+    vokun::core::run_pacman_only "-Rns" "${packages[@]}" && vokun::core::log_action "yeet" "${packages[*]}" ""
 }
 
 # --- vokun find ---

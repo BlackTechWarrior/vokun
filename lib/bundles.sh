@@ -689,11 +689,11 @@ vokun::bundles::search() {
 # --- vokun install ---
 
 vokun::bundles::install() {
-    local name=""
     local dry_run=false
     local pick_mode=false
     local exclude_list=""
     local only_list=""
+    local -a names=()
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
@@ -707,14 +707,31 @@ vokun::bundles::install() {
                 only_list="${2:-}"
                 shift 2 || { vokun::core::error "--only requires a comma-separated package list"; return 1; }
                 ;;
-            *) [[ -z "$name" ]] && name="$1"; shift ;;
+            *) names+=("$1"); shift ;;
         esac
     done
 
-    if [[ -z "$name" ]]; then
-        vokun::core::error "Usage: vokun install <bundle> [--pick] [--exclude pkg,...] [--only pkg,...] [--dry-run]"
+    if [[ ${#names[@]} -eq 0 ]]; then
+        vokun::core::error "Usage: vokun install <bundle> [bundle...] [--pick] [--exclude pkg,...] [--only pkg,...] [--dry-run]"
         return 1
     fi
+
+    # Handle multiple bundles
+    if [[ ${#names[@]} -gt 1 ]]; then
+        local -a flags=()
+        [[ "$dry_run" == true ]] && flags+=("--dry-run")
+        [[ "$pick_mode" == true ]] && flags+=("--pick")
+        [[ -n "$exclude_list" ]] && flags+=("--exclude" "$exclude_list")
+        [[ -n "$only_list" ]] && flags+=("--only" "$only_list")
+        local bundle_name
+        for bundle_name in "${names[@]}"; do
+            vokun::bundles::install "$bundle_name" "${flags[@]}"
+            printf '\n'
+        done
+        return
+    fi
+
+    local name="${names[0]}"
 
     local file
     file=$(vokun::bundles::find_by_name "$name") || {
@@ -1109,24 +1126,51 @@ vokun::bundles::install() {
 # --- vokun remove ---
 
 vokun::bundles::remove() {
-    local name=""
     local dry_run=false
+    local untrack_only=false
+    local -a names=()
 
     for arg in "$@"; do
         case "$arg" in
             --dry-run) dry_run=true ;;
-            *) [[ -z "$name" ]] && name="$arg" ;;
+            --untrack) untrack_only=true ;;
+            *) names+=("$arg") ;;
         esac
     done
 
-    if [[ -z "$name" ]]; then
-        vokun::core::error "Usage: vokun remove <bundle> [--dry-run]"
+    if [[ ${#names[@]} -eq 0 ]]; then
+        vokun::core::error "Usage: vokun remove <bundle> [bundle...] [--dry-run] [--untrack]"
         return 1
     fi
+
+    # Handle multiple bundles
+    if [[ ${#names[@]} -gt 1 ]]; then
+        local bundle_name
+        for bundle_name in "${names[@]}"; do
+            if [[ "$untrack_only" == true ]]; then
+                vokun::bundles::remove "$bundle_name" --untrack
+            elif [[ "$dry_run" == true ]]; then
+                vokun::bundles::remove "$bundle_name" --dry-run
+            else
+                vokun::bundles::remove "$bundle_name"
+            fi
+        done
+        return
+    fi
+
+    local name="${names[0]}"
 
     if ! vokun::state::is_installed "$name"; then
         vokun::core::error "Bundle '$name' is not installed"
         return 1
+    fi
+
+    # --untrack: just remove from state, keep packages on system
+    if [[ "$untrack_only" == true ]]; then
+        vokun::state::remove_bundle "$name"
+        vokun::core::log_action "bundle-untrack" "$name" "untracked (packages kept)"
+        vokun::core::success "Bundle '$name' untracked. Packages left on system."
+        return 0
     fi
 
     # Get packages in this bundle from state

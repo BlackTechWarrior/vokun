@@ -78,6 +78,7 @@ _vokun() {
                 remove)
                     _arguments \
                         '--dry-run[Preview without removing]' \
+                        '--untrack[Remove from tracking only, keep packages]' \
                         '*:bundle:_vokun_bundle_names'
                     ;;
                 select)

@@ -64,6 +64,7 @@ complete -c vokun -n "__fish_seen_subcommand_from info"    -a "(vokun list --nam
 # remove completes with installed bundle names and flags
 complete -c vokun -n "__fish_seen_subcommand_from remove"  -a "(vokun list --names-only 2>/dev/null)" -d "Installed bundle"
 complete -c vokun -n "__fish_seen_subcommand_from remove"  -l dry-run  -d "Preview without removing"
+complete -c vokun -n "__fish_seen_subcommand_from remove"  -l untrack  -d "Remove from tracking only, keep packages"
 
 # update completes with flags
 complete -c vokun -n "__fish_seen_subcommand_from update"  -l aur    -d "Include AUR packages"

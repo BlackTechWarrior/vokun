@@ -32,7 +32,7 @@ _vokun() {
             ;;
         remove)
             if [[ "$cur" == --* ]]; then
-                COMPREPLY=( $(compgen -W "--dry-run --yes" -- "$cur") )
+                COMPREPLY=( $(compgen -W "--dry-run --yes --untrack" -- "$cur") )
             else
                 local installed
                 installed="$(vokun list --names-only 2>/dev/null)"
