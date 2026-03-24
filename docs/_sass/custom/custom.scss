@@ -1,7 +1,7 @@
-// Vokun docs — GitHub dark mode palette
-// No pure white anywhere. Softer contrast, better readability.
+// Vokun docs — GitHub dark palette
+// No pure white (#fff) anywhere
 
-// ── Base colors ──
+// ── Palette ──
 
 $body-text: #c9d1d9;
 $heading-text: #e6edf3;
@@ -13,17 +13,20 @@ $code-bg: #1c2128;
 $inline-code-bg: rgba(110, 118, 129, 0.15);
 $sidebar-inactive: #8b949e;
 $footer-text: #484f58;
+$accent: #58a6ff;
 
-// ── Body ──
+// ── Body & typography ──
 
 body {
   background-color: $bg-main;
   color: $body-text;
-  font-size: 17px;
+  font-size: 16px;
   line-height: 1.7;
 }
 
-// ── Typography ──
+p {
+  margin-bottom: 1em;
+}
 
 h1, h2, h3, h4, h5, h6 {
   color: $heading-text;
@@ -33,59 +36,121 @@ h1, h2, h3, h4, h5, h6 {
 
 a {
   color: $link-color;
-  transition: color 0.15s ease;
+  transition: color 0.2s ease;
 
   &:hover {
-    color: lighten($link-color, 12%);
+    color: lighten($link-color, 14%);
   }
 }
 
-// ── Code ──
+// ── Inline code ──
 
 code {
-  font-size: 0.88em;
+  font-size: 0.85em;
   padding: 0.15em 0.4em;
-  border-radius: 6px;
+  border-radius: 4px;
   background-color: $inline-code-bg;
   border: 1px solid $border-color;
   color: $body-text;
 }
 
+// ── Code blocks ──
+
 pre {
-  background-color: $code-bg;
+  background-color: $code-bg !important;
   border: 1px solid $border-color;
-  border-radius: 6px;
-  padding: 1.2em;
+  border-radius: 8px;
+  padding: 1em 1.2em;
 
   code {
-    font-size: 15px;
+    font-size: 14px;
     padding: 0;
     border: none;
-    background: none;
+    border-radius: 0;
+    background: none !important;
+    color: $body-text;
   }
 }
 
-// ── Sidebar / Navigation ──
+// Override any theme highlight / rouge wrapper
+div.highlighter-rouge,
+figure.highlight {
+  background-color: $code-bg !important;
+  border: 1px solid $border-color;
+  border-radius: 8px;
+
+  pre {
+    border: none;
+    border-radius: 0;
+    margin: 0;
+  }
+}
+
+// ── Tables ──
+
+table {
+  border-collapse: collapse;
+  border: 1px solid $border-color;
+  width: 100%;
+}
+
+th {
+  background-color: $code-bg;
+  color: $heading-text;
+  font-weight: 600;
+  border: 1px solid $border-color;
+  padding: 0.6em 1em;
+}
+
+td {
+  background-color: transparent;
+  border: 1px solid $border-color;
+  padding: 0.6em 1em;
+  color: $body-text;
+}
+
+tr {
+  border-bottom: 1px solid $border-color;
+}
+
+// ── Sidebar ──
 
 .side-bar {
   background-color: $bg-sidebar;
   border-right: 1px solid $border-color;
 }
 
+.site-title {
+  color: $heading-text;
+}
+
 .nav-list .nav-list-item {
+  margin: 0;
+  padding: 0;
+
   .nav-list-link {
     color: $sidebar-inactive;
-    transition: color 0.15s ease;
+    padding: 0.5em 1em;
+    transition: color 0.2s ease, border-color 0.2s ease;
+    border-left: 3px solid transparent;
 
     &:hover {
       color: $heading-text;
+      background-color: rgba(110, 118, 129, 0.08);
     }
 
     &.active {
       color: $heading-text;
       font-weight: 600;
+      border-left: 3px solid $accent;
+      background-color: rgba(88, 166, 255, 0.06);
     }
   }
+}
+
+// More spacing between nav items
+.nav-list .nav-list-item + .nav-list-item {
+  margin-top: 0.15em;
 }
 
 // ── Main content ──
@@ -96,24 +161,16 @@ pre {
 
 .main-content {
   background-color: $bg-main;
+  padding-left: 2.5em;
+  padding-right: 2.5em;
 }
 
-// ── Tables ──
-
-table {
-  border-color: $border-color;
-}
-
-th {
-  background-color: $code-bg;
-  border-color: $border-color;
-  color: $heading-text;
-  padding: 0.75em 1em;
-}
-
-td {
-  border-color: $border-color;
-  padding: 0.65em 1em;
+// Responsive: tighter padding on small screens
+@media (max-width: 800px) {
+  .main-content {
+    padding-left: 1.2em;
+    padding-right: 1.2em;
+  }
 }
 
 // ── Horizontal rules ──
@@ -127,6 +184,8 @@ hr {
 .footer {
   color: $footer-text;
   border-top: 1px solid $border-color;
+  font-size: 0.8em;
+  opacity: 0.7;
 }
 
 // ── Search ──
@@ -135,10 +194,36 @@ hr {
   background-color: $code-bg;
   border: 1px solid $border-color;
   color: $body-text;
+  border-radius: 6px;
+
+  &:focus {
+    border-color: $accent;
+    box-shadow: 0 0 0 2px rgba(88, 166, 255, 0.15);
+  }
 }
 
-// ── Breadcrumbs / page header ──
+.search-results {
+  background-color: $bg-sidebar;
+  border: 1px solid $border-color;
+}
+
+.search-result {
+  border-bottom: 1px solid $border-color;
+}
+
+// ── Breadcrumbs ──
 
 .breadcrumb-nav {
   color: $sidebar-inactive;
+}
+
+// ── Aux links (GitHub link in header) ──
+
+.aux-nav .aux-nav-list-item a {
+  color: $sidebar-inactive;
+  transition: color 0.2s ease;
+
+  &:hover {
+    color: $heading-text;
+  }
 }
