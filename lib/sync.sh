@@ -249,95 +249,215 @@ vokun::sync::run() {
         return 0
     fi
 
-    # Interactive prompts
-    printf '%s\n' "$(printf '%.0s─' {1..50})"
-    printf '\n  What would you like to do with these packages?\n\n'
-    printf '    %s1)%s Add to an existing bundle\n' "$VOKUN_COLOR_BOLD" "$VOKUN_COLOR_RESET"
-    printf '    %s2)%s Create a new bundle for them\n' "$VOKUN_COLOR_BOLD" "$VOKUN_COLOR_RESET"
-    printf '    %s3)%s Mark all as unmanaged (ignore)\n' "$VOKUN_COLOR_BOLD" "$VOKUN_COLOR_RESET"
-    printf '    %s4)%s Skip (do nothing)\n' "$VOKUN_COLOR_BOLD" "$VOKUN_COLOR_RESET"
-    printf '\n'
+    # Interactive loop — let users sort packages in batches
+    local -a remaining=("${untracked[@]}")
 
-    printf '  Choice [1-4]: '
-    local choice
-    read -r choice
+    while [[ ${#remaining[@]} -gt 0 ]]; do
+        printf '%s\n' "$(printf '%.0s─' {1..50})"
+        printf '\n  %s%d untracked package(s) remaining.%s\n\n' \
+            "$VOKUN_COLOR_BOLD" "${#remaining[@]}" "$VOKUN_COLOR_RESET"
+        printf '    %s1)%s Pick packages to add to a bundle\n' "$VOKUN_COLOR_BOLD" "$VOKUN_COLOR_RESET"
+        printf '    %s2)%s Pick packages for a new bundle\n' "$VOKUN_COLOR_BOLD" "$VOKUN_COLOR_RESET"
+        printf '    %s3)%s Mark all remaining as unmanaged (ignore)\n' "$VOKUN_COLOR_BOLD" "$VOKUN_COLOR_RESET"
+        printf '    %s4)%s Done (skip remaining)\n' "$VOKUN_COLOR_BOLD" "$VOKUN_COLOR_RESET"
+        printf '\n'
 
-    case "$choice" in
-        1)
-            vokun::sync::_prompt_add_to_bundle "${untracked[@]}"
-            ;;
-        2)
-            printf '\n'
-            vokun::core::info "Create a new bundle with:"
-            vokun::core::log "  vokun bundle create <name>"
-            vokun::core::log ""
-            vokun::core::log "Then add the packages to its TOML file and run:"
-            vokun::core::log "  vokun install <name>"
-            ;;
-        3)
-            printf '\n'
-            vokun::sync::mark_unmanaged "${untracked[@]}"
-            ;;
-        4|"")
-            vokun::core::log "Skipped."
-            ;;
-        *)
-            vokun::core::error "Invalid choice: $choice"
-            return 1
-            ;;
-    esac
+        printf '  Choice [1-4]: '
+        local choice
+        read -r choice
+
+        case "$choice" in
+            1)
+                local -a picked=()
+                vokun::sync::_pick_packages picked "${remaining[@]}"
+                if [[ ${#picked[@]} -gt 0 ]]; then
+                    vokun::sync::_prompt_add_to_bundle "${picked[@]}"
+                    vokun::sync::_remove_from_list remaining "${picked[@]}"
+                fi
+                ;;
+            2)
+                local -a picked=()
+                vokun::sync::_pick_packages picked "${remaining[@]}"
+                if [[ ${#picked[@]} -gt 0 ]]; then
+                    vokun::sync::_prompt_create_bundle "${picked[@]}"
+                    vokun::sync::_remove_from_list remaining "${picked[@]}"
+                fi
+                ;;
+            3)
+                vokun::sync::mark_unmanaged "${remaining[@]}"
+                remaining=()
+                ;;
+            4|"")
+                vokun::core::log "Skipped."
+                break
+                ;;
+            *)
+                vokun::core::warn "Invalid choice: $choice"
+                ;;
+        esac
+    done
+}
+
+# Let user pick packages from a list (fzf or numbered)
+# Usage: vokun::sync::_pick_packages result_array_name "${packages[@]}"
+vokun::sync::_pick_packages() {
+    local -n _picked="$1"
+    shift
+    local -a available=("$@")
+    _picked=()
+
+    if command -v fzf &>/dev/null && [[ "${VOKUN_FZF:-true}" == "true" ]]; then
+        mapfile -t _picked < <(
+            printf '%s\n' "${available[@]}" | fzf --multi \
+                --header="TAB to select, ENTER to confirm" \
+                --prompt="Pick packages> " \
+                --no-info 2>/dev/null
+        ) || true
+    else
+        printf '\n  %sSelect packages (space-separated numbers):%s\n' "$VOKUN_COLOR_BOLD" "$VOKUN_COLOR_RESET"
+        local i=1
+        for pkg in "${available[@]}"; do
+            printf '    %s%d)%s %s\n' "$VOKUN_COLOR_BOLD" "$i" "$VOKUN_COLOR_RESET" "$pkg"
+            ((i++))
+        done
+        printf '\n  > '
+        local selection
+        read -r selection
+        # shellcheck disable=SC2086
+        for num in $selection; do
+            if [[ "$num" =~ ^[0-9]+$ ]] && (( num >= 1 && num <= ${#available[@]} )); then
+                _picked+=("${available[$((num - 1))]}")
+            fi
+        done
+    fi
+}
+
+# Remove picked packages from a remaining list
+# Usage: vokun::sync::_remove_from_list remaining_array_name "${picked[@]}"
+vokun::sync::_remove_from_list() {
+    local -n _remaining="$1"
+    shift
+    local -a to_remove=("$@")
+    local -a new_remaining=()
+    local pkg
+    for pkg in "${_remaining[@]}"; do
+        if ! vokun::core::in_array "$pkg" "${to_remove[@]}"; then
+            new_remaining+=("$pkg")
+        fi
+    done
+    _remaining=("${new_remaining[@]}")
+}
+
+# Create a new bundle from picked packages
+vokun::sync::_prompt_create_bundle() {
+    local -a packages=("$@")
+
+    printf '\n  Bundle name: '
+    local bundle_name
+    read -r bundle_name
+
+    if [[ -z "$bundle_name" ]]; then
+        vokun::core::warn "No name given. Skipped."
+        return
+    fi
+
+    # Create the bundle file
+    local custom_dir="${VOKUN_CONFIG_DIR}/bundles/custom"
+    mkdir -p "$custom_dir"
+    local bundle_file="${custom_dir}/${bundle_name}.toml"
+
+    if [[ -f "$bundle_file" ]]; then
+        vokun::core::warn "Bundle '$bundle_name' already exists. Adding packages to it."
+    else
+        cat > "$bundle_file" <<EOF
+[meta]
+name = "$bundle_name"
+description = "Custom bundle created via vokun sync"
+tags = ["custom"]
+version = "1.0.0"
+
+[packages]
+EOF
+    fi
+
+    # Append packages
+    local pkg
+    for pkg in "${packages[@]}"; do
+        local desc
+        desc=$(pacman -Qi "$pkg" 2>/dev/null | sed -n 's/^Description *: *//p' || echo "")
+        printf '%s = "%s"\n' "$pkg" "$desc" >> "$bundle_file"
+    done
+
+    # Track in state
+    local pkg_list
+    pkg_list=$(printf '%s ' "${packages[@]}")
+    vokun::state::add_bundle "$bundle_name" "$pkg_list" "" "custom"
+
+    vokun::core::success "Created bundle '$bundle_name' with ${#packages[@]} package(s)."
+    vokun::core::log "  Edit: vokun bundle edit $bundle_name"
 }
 
 # Prompt user to select a bundle and show which packages to add
 vokun::sync::_prompt_add_to_bundle() {
     local -a packages=("$@")
 
-    # Get installed bundles
+    # Get installed bundles + available bundles
     local -a bundles
     mapfile -t bundles < <(vokun::state::get_installed_bundles)
 
-    if [[ ${#bundles[@]} -eq 0 ]]; then
-        vokun::core::warn "No installed bundles found"
+    # Also show available (not installed) bundles
+    local -a available_bundles=()
+    local -a all_files
+    mapfile -t all_files < <(vokun::bundles::find_all)
+    for f in "${all_files[@]}"; do
+        local bname
+        bname=$(vokun::bundles::name_from_path "$f")
+        if ! vokun::core::in_array "$bname" "${bundles[@]+"${bundles[@]}"}"; then
+            available_bundles+=("$bname")
+        fi
+    done
+
+    local -a all_bundles=("${bundles[@]}" "${available_bundles[@]}")
+
+    if [[ ${#all_bundles[@]} -eq 0 ]]; then
+        vokun::core::warn "No bundles found"
         vokun::core::log "Create one first with: vokun bundle create <name>"
         return 1
     fi
 
-    printf '\n  %sInstalled bundles:%s\n' "$VOKUN_COLOR_BOLD" "$VOKUN_COLOR_RESET"
+    printf '\n  %sBundles:%s\n' "$VOKUN_COLOR_BOLD" "$VOKUN_COLOR_RESET"
     local i=1
-    for bundle in "${bundles[@]}"; do
-        printf '    %s%d)%s %s\n' "$VOKUN_COLOR_BOLD" "$i" "$VOKUN_COLOR_RESET" "$bundle"
+    for bundle in "${all_bundles[@]}"; do
+        local marker=""
+        if vokun::state::is_installed "$bundle"; then
+            marker=" ${VOKUN_COLOR_GREEN}[installed]${VOKUN_COLOR_RESET}"
+        fi
+        printf '    %s%d)%s %s%s\n' "$VOKUN_COLOR_BOLD" "$i" "$VOKUN_COLOR_RESET" "$bundle" "$marker"
         ((i++))
     done
 
-    printf '\n  Select a bundle [1-%d]: ' "${#bundles[@]}"
+    printf '\n  Select a bundle [1-%d]: ' "${#all_bundles[@]}"
     local bundle_choice
     read -r bundle_choice
 
     # Validate
-    if ! [[ "$bundle_choice" =~ ^[0-9]+$ ]] || [[ "$bundle_choice" -lt 1 ]] || [[ "$bundle_choice" -gt ${#bundles[@]} ]]; then
-        vokun::core::error "Invalid selection"
-        return 1
+    if ! [[ "$bundle_choice" =~ ^[0-9]+$ ]] || [[ "$bundle_choice" -lt 1 ]] || [[ "$bundle_choice" -gt ${#all_bundles[@]} ]]; then
+        vokun::core::warn "Invalid selection"
+        return
     fi
 
-    local selected_bundle="${bundles[$((bundle_choice - 1))]}"
+    local selected_bundle="${all_bundles[$((bundle_choice - 1))]}"
 
-    printf '\n'
-    vokun::core::info "To add these packages to '$selected_bundle', add them to the bundle's TOML file:"
-
-    local bundle_file
-    bundle_file=$(vokun::bundles::find_by_name "$selected_bundle" 2>/dev/null) || bundle_file=""
-
-    if [[ -n "$bundle_file" ]]; then
-        vokun::core::log "  $bundle_file"
+    # Add packages to state tracking
+    local current_pkgs=""
+    if vokun::state::is_installed "$selected_bundle"; then
+        current_pkgs=$(vokun::state::get_bundle_packages "$selected_bundle" | tr '\n' ' ')
     fi
+    local new_pkgs
+    new_pkgs=$(printf '%s ' "${packages[@]}")
+    vokun::state::add_bundle "$selected_bundle" "${current_pkgs}${new_pkgs}" "" "default"
 
-    printf '\n  %sPackages to add:%s\n' "$VOKUN_COLOR_GREEN" "$VOKUN_COLOR_RESET"
-    for pkg in "${packages[@]}"; do
-        printf '    %s = ""\n' "$pkg"
-    done
-
-    printf '\n  After editing, re-install the bundle to update tracking:\n'
-    vokun::core::log "  vokun install $selected_bundle"
+    vokun::core::success "Added ${#packages[@]} package(s) to '$selected_bundle'."
 }
 
 # Remove missing packages from bundle state
