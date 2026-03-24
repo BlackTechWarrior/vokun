@@ -4,6 +4,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![CI](https://github.com/blacktechwarrior/vokun/actions/workflows/ci.yml/badge.svg)](https://github.com/blacktechwarrior/vokun/actions/workflows/ci.yml)
+[![AUR](https://img.shields.io/aur/version/vokun)](https://aur.archlinux.org/packages/vokun)
 
 ---
 
@@ -30,8 +31,7 @@ Skyrim. It has zero namespace collisions in the CLI/package tool space.
 ## Quick Start
 
 ```bash
-git clone https://github.com/blacktechwarrior/vokun.git
-cd vokun && sudo make install
+paru -S vokun            # Install from the AUR
 vokun                    # Launch interactive mode
 vokun list               # Browse available bundles
 vokun install sysadmin   # Install the sysadmin toolkit
@@ -41,12 +41,12 @@ vokun install sysadmin   # Install the sysadmin toolkit
 
 ## Installation
 
-### From source (recommended)
+### AUR (recommended)
 
 ```bash
-git clone https://github.com/blacktechwarrior/vokun.git
-cd vokun
-sudo make install
+paru -S vokun
+# or
+yay -S vokun
 ```
 
 ### One-liner
@@ -55,14 +55,12 @@ sudo make install
 curl -fsSL https://raw.githubusercontent.com/blacktechwarrior/vokun/main/install.sh | bash
 ```
 
-### AUR (coming soon)
-
-AUR package submission is planned. Once available:
+### From source
 
 ```bash
-paru -S vokun
-# or
-yay -S vokun
+git clone https://github.com/blacktechwarrior/vokun.git
+cd vokun
+sudo make install
 ```
 
 ---

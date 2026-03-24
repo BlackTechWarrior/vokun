@@ -8,12 +8,12 @@ nav_order: 2
 
 ## Installation
 
-### From source (recommended)
+### AUR (recommended)
 
 ```bash
-git clone https://github.com/blacktechwarrior/vokun.git
-cd vokun
-sudo make install
+paru -S vokun
+# or
+yay -S vokun
 ```
 
 ### One-liner
@@ -25,14 +25,12 @@ curl -fsSL https://raw.githubusercontent.com/blacktechwarrior/vokun/main/install
 This clones the repository to a temporary directory, runs `make install` (which
 copies files to `/usr/local`), and cleans up.
 
-### AUR (coming soon)
-
-AUR package submission is planned. Once available:
+### From source
 
 ```bash
-paru -S vokun
-# or
-yay -S vokun
+git clone https://github.com/blacktechwarrior/vokun.git
+cd vokun
+sudo make install
 ```
 
 `make install` places the following files:
