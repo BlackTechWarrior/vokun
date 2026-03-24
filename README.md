@@ -101,6 +101,8 @@ vokun which   <pkg>             # Info on installed package   (pacman -Qi)
 vokun owns    <file>            # Which package owns a file   (pacman -Qo)
 vokun update                    # Full system update          (pacman -Syu)
 vokun update  --aur             # Include AUR packages
+vokun update  --check           # Show available upgrades     (checkupdates)
+vokun update  --check --aur     # Include AUR in check        (paru -Qu)
 ```
 
 ### Action log

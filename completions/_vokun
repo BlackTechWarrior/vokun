@@ -105,6 +105,11 @@ _vokun() {
                     )
                     _describe -t profile-cmds 'profile subcommand' profile_cmds
                     ;;
+                update)
+                    _arguments \
+                        '--aur[Include AUR packages]' \
+                        '--check[Show available upgrades without installing]'
+                    ;;
                 sync)
                     _arguments \
                         '--auto[Auto-reconcile without prompting]' \

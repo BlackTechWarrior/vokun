@@ -87,6 +87,9 @@ _vokun() {
                 fi
             fi
             ;;
+        update)
+            COMPREPLY=( $(compgen -W "--aur --check" -- "$cur") )
+            ;;
         why|untracked|doctor)
             ;;
         help)

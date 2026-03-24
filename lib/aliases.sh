@@ -141,12 +141,42 @@ vokun::aliases::owns() {
 # --- vokun update ---
 vokun::aliases::update() {
     local use_aur=false
+    local check_only=false
 
     for arg in "$@"; do
         case "$arg" in
             --aur) use_aur=true ;;
+            --check) check_only=true ;;
         esac
     done
+
+    if [[ "$check_only" == true ]]; then
+        local updates=""
+        if [[ "$use_aur" == true ]]; then
+            local aur_helper
+            aur_helper=$(vokun::core::get_aur_helper)
+            if [[ -n "$aur_helper" ]]; then
+                vokun::core::show_cmd "$aur_helper -Qu"
+                updates=$("$aur_helper" -Qu 2>/dev/null) || true
+            else
+                vokun::core::show_cmd "checkupdates"
+                updates=$(checkupdates 2>/dev/null) || true
+            fi
+        else
+            vokun::core::show_cmd "checkupdates"
+            updates=$(checkupdates 2>/dev/null) || true
+        fi
+
+        if [[ -n "$updates" ]]; then
+            printf '%s\n' "$updates"
+            local count
+            count=$(printf '%s\n' "$updates" | wc -l)
+            printf '\n%s%d update(s) available.%s\n' "$VOKUN_COLOR_BOLD" "$count" "$VOKUN_COLOR_RESET"
+        else
+            vokun::core::success "System is up to date."
+        fi
+        return 0
+    fi
 
     if [[ "$use_aur" == true ]]; then
         local aur_helper

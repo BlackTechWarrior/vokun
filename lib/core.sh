@@ -532,7 +532,7 @@ EOF
             ;;
         update)
             cat <<EOF
-${VOKUN_COLOR_BOLD}vokun update${VOKUN_COLOR_RESET} [--aur]
+${VOKUN_COLOR_BOLD}vokun update${VOKUN_COLOR_RESET} [--aur] [--check]
 
 Perform a full system update. Syncs repos and upgrades all packages.
 
@@ -540,6 +540,7 @@ ${VOKUN_COLOR_DIM}Equivalent to: sudo pacman -Syu${VOKUN_COLOR_RESET}
 
 ${VOKUN_COLOR_BOLD}Flags:${VOKUN_COLOR_RESET}
     --aur    Also update AUR packages (requires paru/yay)
+    --check  Show available upgrades without installing
 EOF
             ;;
         orphans)
