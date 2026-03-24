@@ -34,7 +34,7 @@ vokun
 ### vokun install
 
 ```
-vokun install <bundle> [--yes]
+vokun install <bundle> [flags]
 ```
 
 Install all packages from a bundle. Displays each package with its description,
@@ -45,15 +45,38 @@ Already-installed packages are skipped (`--needed` is passed to pacman).
 
 After a successful install the bundle is recorded in the state file.
 
+| Flag | Description |
+|------|-------------|
+| `--pick` | Interactively select which packages to install (fzf or numbered menu) |
+| `--exclude pkg1,pkg2` | Skip specific packages from the bundle |
+| `--only pkg1,pkg2` | Install only these packages from the bundle |
+| `--dry-run` | Show what would be installed without making changes |
+| `--yes`, `-y` | Skip confirmation prompt |
+
+Examples:
+
+```bash
+vokun install coding                        # Install all packages
+vokun install coding --pick                 # Choose individual packages
+vokun install coding --exclude gdb,strace   # Skip gdb and strace
+vokun install coding --only git,cmake       # Install only git and cmake
+vokun install coding --dry-run              # Preview without installing
+```
+
+Skipped packages are recorded in the state file so vokun knows they were
+intentionally excluded.
+
 ### vokun remove
 
 ```
-vokun remove <bundle>
+vokun remove <bundle> [--dry-run]
 ```
 
 Remove packages that are unique to the given bundle. Packages shared with other
 installed bundles are kept and listed. The bundle is removed from the state file
 after the operation.
+
+Use `--dry-run` to preview what would be removed without making changes.
 
 ### vokun list
 

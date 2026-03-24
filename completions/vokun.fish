@@ -35,12 +35,19 @@ complete -c vokun -l yes -s y     -d "Skip confirmation prompts"
 complete -c vokun -l no-color     -d "Disable colored output"
 complete -c vokun -l version -s v -d "Show version"
 
-# Subcommand arguments: install and info complete with bundle names
+# Subcommand arguments: install completes with bundle names and flags
 complete -c vokun -n "__fish_seen_subcommand_from install" -a "(vokun list --names-only 2>/dev/null)" -d "Bundle"
+complete -c vokun -n "__fish_seen_subcommand_from install" -l pick     -d "Interactively select packages"
+complete -c vokun -n "__fish_seen_subcommand_from install" -l exclude  -d "Skip specific packages (comma-separated)"
+complete -c vokun -n "__fish_seen_subcommand_from install" -l only     -d "Install only these packages (comma-separated)"
+complete -c vokun -n "__fish_seen_subcommand_from install" -l dry-run  -d "Preview without installing"
+
+# info completes with bundle names
 complete -c vokun -n "__fish_seen_subcommand_from info"    -a "(vokun list --names-only 2>/dev/null)" -d "Bundle"
 
-# remove completes with installed bundle names
+# remove completes with installed bundle names and flags
 complete -c vokun -n "__fish_seen_subcommand_from remove"  -a "(vokun list --names-only 2>/dev/null)" -d "Installed bundle"
+complete -c vokun -n "__fish_seen_subcommand_from remove"  -l dry-run  -d "Preview without removing"
 
 # export completes with --json flag
 complete -c vokun -n "__fish_seen_subcommand_from export"  -l json -d "Export in JSON format"

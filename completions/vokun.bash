@@ -16,17 +16,28 @@ _vokun() {
     fi
 
     case "${COMP_WORDS[1]}" in
-        install|info)
-            # Complete with available bundle names
+        install)
+            if [[ "$cur" == --* ]]; then
+                COMPREPLY=( $(compgen -W "--pick --exclude --only --dry-run --yes" -- "$cur") )
+            else
+                local bundles
+                bundles="$(vokun list --names-only 2>/dev/null)"
+                COMPREPLY=( $(compgen -W "$bundles" -- "$cur") )
+            fi
+            ;;
+        info)
             local bundles
             bundles="$(vokun list --names-only 2>/dev/null)"
             COMPREPLY=( $(compgen -W "$bundles" -- "$cur") )
             ;;
         remove)
-            # Complete with installed bundle names
-            local installed
-            installed="$(vokun list --names-only 2>/dev/null)"
-            COMPREPLY=( $(compgen -W "$installed" -- "$cur") )
+            if [[ "$cur" == --* ]]; then
+                COMPREPLY=( $(compgen -W "--dry-run --yes" -- "$cur") )
+            else
+                local installed
+                installed="$(vokun list --names-only 2>/dev/null)"
+                COMPREPLY=( $(compgen -W "$installed" -- "$cur") )
+            fi
             ;;
         hook)
             COMPREPLY=( $(compgen -W "install remove" -- "$cur") )

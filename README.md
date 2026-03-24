@@ -72,13 +72,17 @@ yay -S vokun
 ### Bundle commands
 
 ```bash
-vokun install <bundle>          # Install a bundle (shows packages, confirms)
-vokun install <bundle> --yes    # Skip confirmation
-vokun remove  <bundle>          # Remove packages unique to this bundle
-vokun list                      # List all available bundles
-vokun list --installed          # List installed bundles only
-vokun info    <bundle>          # Show bundle contents without installing
-vokun search  <keyword>         # Search bundles by name, tag, or package
+vokun install <bundle>                      # Install a bundle (shows packages, confirms)
+vokun install <bundle> --pick               # Interactively select which packages to install
+vokun install <bundle> --exclude pkg1,pkg2  # Install everything except these packages
+vokun install <bundle> --only pkg1,pkg2     # Install only these packages from the bundle
+vokun install <bundle> --dry-run            # Preview what would be installed
+vokun remove  <bundle>                      # Remove packages unique to this bundle
+vokun remove  <bundle> --dry-run            # Preview what would be removed
+vokun list                                  # List all available bundles
+vokun list --installed                      # List installed bundles only
+vokun info    <bundle>                      # Show bundle contents without installing
+vokun search  <keyword>                     # Search bundles by name, tag, or package
 ```
 
 ### Package commands (pacman/paru aliases)

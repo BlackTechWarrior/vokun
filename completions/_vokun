@@ -48,11 +48,21 @@ _vokun() {
             ;;
         args)
             case "${words[1]}" in
-                install|info)
+                install)
+                    _arguments \
+                        '--pick[Interactively select packages]' \
+                        '--exclude[Skip specific packages]:packages:' \
+                        '--only[Install only these packages]:packages:' \
+                        '--dry-run[Preview without installing]' \
+                        '*:bundle:_vokun_bundle_names'
+                    ;;
+                info)
                     _vokun_bundle_names
                     ;;
                 remove)
-                    _vokun_bundle_names
+                    _arguments \
+                        '--dry-run[Preview without removing]' \
+                        '*:bundle:_vokun_bundle_names'
                     ;;
                 export)
                     _arguments '--json[Export in JSON format]'
