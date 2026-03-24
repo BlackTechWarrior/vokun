@@ -290,11 +290,17 @@ Install all packages from a bundle. Shows each package with its description,
 highlights AUR packages, and shows optional packages separately.
 
 ${VOKUN_COLOR_BOLD}Examples:${VOKUN_COLOR_RESET}
-    vokun install coding          # Install core coding tools
-    vokun install python-dev -y   # Install Python dev tools, skip confirmation
+    vokun install coding                      # Install all packages
+    vokun install coding --pick               # Interactively select which packages
+    vokun install coding --exclude gdb,strace # Skip specific packages
+    vokun install coding --only git,cmake     # Install only these from the bundle
 
 ${VOKUN_COLOR_BOLD}Flags:${VOKUN_COLOR_RESET}
-    --yes, -y    Skip confirmation prompt
+    --pick                 Interactively select packages (fzf or menu)
+    --exclude pkg,pkg,...  Skip these packages
+    --only pkg,pkg,...     Install only these packages from the bundle
+    --dry-run              Show what would happen without installing
+    --yes, -y              Skip confirmation prompt
 EOF
             ;;
         remove)

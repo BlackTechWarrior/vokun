@@ -316,16 +316,28 @@ vokun::bundles::search() {
 vokun::bundles::install() {
     local name=""
     local dry_run=false
+    local pick_mode=false
+    local exclude_list=""
+    local only_list=""
 
-    for arg in "$@"; do
-        case "$arg" in
-            --dry-run) dry_run=true ;;
-            *) [[ -z "$name" ]] && name="$arg" ;;
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --dry-run) dry_run=true; shift ;;
+            --pick) pick_mode=true; shift ;;
+            --exclude)
+                exclude_list="${2:-}"
+                shift 2 || { vokun::core::error "--exclude requires a comma-separated package list"; return 1; }
+                ;;
+            --only)
+                only_list="${2:-}"
+                shift 2 || { vokun::core::error "--only requires a comma-separated package list"; return 1; }
+                ;;
+            *) [[ -z "$name" ]] && name="$1"; shift ;;
         esac
     done
 
     if [[ -z "$name" ]]; then
-        vokun::core::error "Usage: vokun install <bundle> [--dry-run]"
+        vokun::core::error "Usage: vokun install <bundle> [--pick] [--exclude pkg,...] [--only pkg,...] [--dry-run]"
         return 1
     fi
 
@@ -351,11 +363,21 @@ vokun::bundles::install() {
     [[ -n "$description" ]] && printf '%s\n' "$description"
     printf '%s\n' "$(printf '%.0s─' {1..50})"
 
-    # Collect packages
+    # Build exclude/only arrays for filtering
+    local -a exclude_arr=() only_arr=()
+    if [[ -n "$exclude_list" ]]; then
+        IFS=',' read -ra exclude_arr <<< "$exclude_list"
+    fi
+    if [[ -n "$only_list" ]]; then
+        IFS=',' read -ra only_arr <<< "$only_list"
+    fi
+
+    # Collect packages (applying --exclude and --only during collection)
     local -a repo_packages=()
     local -a aur_packages=()
     local -a optional_packages=()
     local -a already_installed=()
+    local -a skipped_by_filter=()
     local -a to_install=()
 
     # Regular packages
@@ -364,6 +386,16 @@ vokun::bundles::install() {
     if [[ -n "$pkg_keys" ]]; then
         while IFS= read -r pkg; do
             [[ -z "$pkg" ]] && continue
+            # Apply --exclude
+            if [[ ${#exclude_arr[@]} -gt 0 ]] && vokun::core::in_array "$pkg" "${exclude_arr[@]}"; then
+                skipped_by_filter+=("$pkg")
+                continue
+            fi
+            # Apply --only
+            if [[ ${#only_arr[@]} -gt 0 ]] && ! vokun::core::in_array "$pkg" "${only_arr[@]}"; then
+                skipped_by_filter+=("$pkg")
+                continue
+            fi
             if vokun::core::is_pkg_installed "$pkg"; then
                 already_installed+=("$pkg")
             else
@@ -378,12 +410,86 @@ vokun::bundles::install() {
     if [[ -n "$aur_keys" ]]; then
         while IFS= read -r pkg; do
             [[ -z "$pkg" ]] && continue
+            # Apply --exclude
+            if [[ ${#exclude_arr[@]} -gt 0 ]] && vokun::core::in_array "$pkg" "${exclude_arr[@]}"; then
+                skipped_by_filter+=("$pkg")
+                continue
+            fi
+            # Apply --only
+            if [[ ${#only_arr[@]} -gt 0 ]] && ! vokun::core::in_array "$pkg" "${only_arr[@]}"; then
+                skipped_by_filter+=("$pkg")
+                continue
+            fi
             if vokun::core::is_pkg_installed "$pkg"; then
                 already_installed+=("$pkg")
             else
                 aur_packages+=("$pkg")
             fi
         done <<< "$aur_keys"
+    fi
+
+    # --- Filtering: --pick, --exclude, --only ---
+
+    # Build the full candidate list (repo + aur, not yet installed)
+    local -a all_candidates=("${repo_packages[@]}" "${aur_packages[@]}")
+
+    # --pick: interactive selection via fzf or numbered menu
+    if [[ "$pick_mode" == true && ${#all_candidates[@]} -gt 0 ]]; then
+        local -a picked=()
+
+        if command -v fzf &>/dev/null && [[ "${VOKUN_FZF:-true}" == "true" ]]; then
+            vokun::core::info "Select packages to install (TAB to toggle, ENTER to confirm)"
+            mapfile -t picked < <(
+                for pkg in "${all_candidates[@]}"; do
+                    local section="packages"
+                    vokun::core::in_array "$pkg" "${aur_packages[@]}" && section="packages.aur"
+                    local desc
+                    desc=$(vokun::toml::get "${section}.${pkg}")
+                    printf '%s\t%s\n' "$pkg" "$desc"
+                done | fzf --multi --with-nth=1.. --delimiter='\t' \
+                    --prompt="Pick packages> " \
+                    --header="TAB to select, ENTER to confirm" | cut -f1
+            )
+        else
+            # Numbered menu fallback
+            printf '\n  %sSelect packages to install:%s\n' "$VOKUN_COLOR_BOLD" "$VOKUN_COLOR_RESET"
+            local i=1
+            for pkg in "${all_candidates[@]}"; do
+                printf '    %s%d)%s %s\n' "$VOKUN_COLOR_BOLD" "$i" "$VOKUN_COLOR_RESET" "$pkg"
+                ((i++))
+            done
+            printf '\n  Enter numbers separated by spaces (e.g., 1 3 5): '
+            local selection
+            read -r selection
+            # shellcheck disable=SC2086
+            for num in $selection; do
+                if [[ "$num" =~ ^[0-9]+$ ]] && (( num >= 1 && num <= ${#all_candidates[@]} )); then
+                    picked+=("${all_candidates[$((num - 1))]}")
+                fi
+            done
+        fi
+
+        if [[ ${#picked[@]} -eq 0 ]]; then
+            vokun::core::log "No packages selected. Installation cancelled."
+            return 1
+        fi
+
+        # Rebuild repo_packages and aur_packages from picked list
+        local -a new_repo=() new_aur=()
+        for pkg in "${picked[@]}"; do
+            if vokun::core::in_array "$pkg" "${aur_packages[@]}"; then
+                new_aur+=("$pkg")
+            else
+                new_repo+=("$pkg")
+            fi
+        done
+        repo_packages=("${new_repo[@]}")
+        aur_packages=("${new_aur[@]}")
+    fi
+
+    # Show what was filtered out
+    if [[ ${#skipped_by_filter[@]} -gt 0 ]]; then
+        printf '\n  %sSkipped:%s %s\n' "$VOKUN_COLOR_DIM" "$VOKUN_COLOR_RESET" "${skipped_by_filter[*]}"
     fi
 
     # Optional packages
@@ -520,10 +626,23 @@ vokun::bundles::install() {
         done <<< "$hooks"
     fi
 
-    # Update state
+    # Update state — track installed and skipped packages
     local all_pkgs
     all_pkgs=$(printf '%s ' "${already_installed[@]}" "${repo_packages[@]}" "${aur_packages[@]}")
+
+    # Build skipped list from filtered + pick-mode unselected packages
     local skipped_pkgs=""
+    skipped_pkgs=$(printf '%s ' "${skipped_by_filter[@]}")
+    # In pick mode, anything from candidates not picked is also skipped
+    if [[ "$pick_mode" == true ]]; then
+        for pkg in "${all_candidates[@]}"; do
+            if ! vokun::core::in_array "$pkg" "${repo_packages[@]}" && \
+               ! vokun::core::in_array "$pkg" "${aur_packages[@]}"; then
+                skipped_pkgs+="$pkg "
+            fi
+        done
+    fi
+
     vokun::state::add_bundle "$name" "$all_pkgs" "$skipped_pkgs" "default"
 
     printf '\n'

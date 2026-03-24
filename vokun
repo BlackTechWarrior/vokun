@@ -11,23 +11,23 @@ VOKUN_VERSION="0.3.0"
 # Priority: /usr/share/vokun (installed) > script directory (development)
 VOKUN_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-if [[ -d "/usr/share/vokun/lib" ]]; then
-    VOKUN_LIB_DIR="/usr/share/vokun/lib"
+if [[ -d "${VOKUN_SCRIPT_DIR}/lib" ]]; then
+    VOKUN_LIB_DIR="${VOKUN_SCRIPT_DIR}/lib"
 elif [[ -d "/usr/local/share/vokun/lib" ]]; then
     VOKUN_LIB_DIR="/usr/local/share/vokun/lib"
-elif [[ -d "${VOKUN_SCRIPT_DIR}/lib" ]]; then
-    VOKUN_LIB_DIR="${VOKUN_SCRIPT_DIR}/lib"
+elif [[ -d "/usr/share/vokun/lib" ]]; then
+    VOKUN_LIB_DIR="/usr/share/vokun/lib"
 else
     echo "Error: Cannot find vokun lib directory" >&2
     exit 1
 fi
 
-if [[ -d "/usr/share/vokun/bundles" ]]; then
-    VOKUN_SYSTEM_BUNDLE_DIR="/usr/share/vokun/bundles"
+if [[ -d "${VOKUN_SCRIPT_DIR}/bundles" ]]; then
+    VOKUN_SYSTEM_BUNDLE_DIR="${VOKUN_SCRIPT_DIR}/bundles"
 elif [[ -d "/usr/local/share/vokun/bundles" ]]; then
     VOKUN_SYSTEM_BUNDLE_DIR="/usr/local/share/vokun/bundles"
-elif [[ -d "${VOKUN_SCRIPT_DIR}/bundles" ]]; then
-    VOKUN_SYSTEM_BUNDLE_DIR="${VOKUN_SCRIPT_DIR}/bundles"
+elif [[ -d "/usr/share/vokun/bundles" ]]; then
+    VOKUN_SYSTEM_BUNDLE_DIR="/usr/share/vokun/bundles"
 else
     VOKUN_SYSTEM_BUNDLE_DIR=""
 fi
