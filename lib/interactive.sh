@@ -27,11 +27,13 @@ vokun::interactive::first_run_check() {
         return 1
     fi
 
-    # Check if any bundles are installed
+    # Check if wizard was already dismissed or bundles are installed
     local bundle_count
     bundle_count=$(jq '.installed_bundles | length' "$VOKUN_STATE_FILE" 2>/dev/null || echo "0")
+    local dismissed
+    dismissed=$(jq -r '.wizard_dismissed // false' "$VOKUN_STATE_FILE" 2>/dev/null || echo "false")
 
-    if [[ "$bundle_count" -gt 0 ]]; then
+    if [[ "$bundle_count" -gt 0 || "$dismissed" == "true" ]]; then
         # Not first run
         return 1
     fi
@@ -43,7 +45,13 @@ vokun::interactive::first_run_check() {
     local reply
     read -r reply
     case "$reply" in
-        [nN]|[nN][oO]) return 0 ;;
+        [nN]|[nN][oO])
+            # Remember the dismissal
+            local tmp
+            tmp=$(mktemp)
+            jq '.wizard_dismissed = true' "$VOKUN_STATE_FILE" > "$tmp" && mv "$tmp" "$VOKUN_STATE_FILE"
+            return 0
+            ;;
     esac
 
     vokun::interactive::wizard

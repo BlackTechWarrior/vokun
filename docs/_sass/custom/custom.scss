@@ -126,6 +126,18 @@ tr {
 .side-bar {
   background-color: $bg-sidebar;
   border-right: 1px solid $border-color;
+  width: 200px !important;
+  min-width: 200px !important;
+}
+
+@media (min-width: 800px) {
+  .side-bar {
+    width: 200px !important;
+    min-width: 200px !important;
+  }
+  .main {
+    margin-left: 200px !important;
+  }
 }
 
 .site-title {
