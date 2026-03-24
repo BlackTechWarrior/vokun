@@ -39,6 +39,9 @@ _vokun() {
         'check:AUR trust scoring for a package'
         'diff:View PKGBUILD for an AUR package'
         'profile:Manage installation profiles'
+        'log:Show action log'
+        'rollback:Undo the last reversible action'
+        'dotfiles:Manage dotfiles'
         'help:Show help'
     )
 
@@ -109,6 +112,22 @@ _vokun() {
                     )
                     _describe -t bundle-cmds 'bundle subcommand' bundle_cmds
                     ;;
+                log)
+                    _arguments \
+                        '--count[Number of entries to show]:count:'
+                    ;;
+                dotfiles)
+                    local -a dotfiles_cmds
+                    dotfiles_cmds=(
+                        'init:Initialize dotfile tracking'
+                        'apply:Apply dotfiles to the system'
+                        'push:Push dotfile changes upstream'
+                        'pull:Pull dotfile changes from upstream'
+                        'status:Show dotfile tracking status'
+                        'edit:Edit a tracked dotfile'
+                    )
+                    _describe -t dotfiles-cmds 'dotfiles subcommand' dotfiles_cmds
+                    ;;
                 help)
                     local -a help_topics
                     help_topics=(
@@ -117,7 +136,7 @@ _vokun() {
                         'cache' 'size' 'recent' 'foreign' 'explicit'
                         'export' 'import' 'broken' 'hook' 'setup'
                         'uninstall' 'bundle' 'sync' 'check' 'diff'
-                        'profile' 'help'
+                        'profile' 'log' 'rollback' 'dotfiles' 'help'
                     )
                     _describe -t help-topics 'subcommand' help_topics
                     ;;

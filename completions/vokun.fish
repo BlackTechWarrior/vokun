@@ -5,7 +5,7 @@
 complete -c vokun -f
 
 # Subcommands
-set -l subcommands install remove list info search get yeet find which owns update orphans cache size recent foreign explicit export import broken hook setup uninstall bundle sync check diff profile help
+set -l subcommands install remove list info search get yeet find which owns update orphans cache size recent foreign explicit export import broken hook setup uninstall bundle sync check diff profile log rollback dotfiles help
 
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a install  -d "Install a bundle"
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a remove   -d "Remove a bundle"
@@ -35,6 +35,9 @@ complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a sync     
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a check    -d "AUR trust scoring for a package"
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a diff     -d "View PKGBUILD for an AUR package"
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a profile  -d "Manage installation profiles"
+complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a log      -d "Show action log"
+complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a rollback -d "Undo the last reversible action"
+complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a dotfiles -d "Manage dotfiles"
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a help     -d "Show help"
 
 # Global flags
@@ -74,6 +77,12 @@ complete -c vokun -n "__fish_seen_subcommand_from sync"    -l quiet -d "Suppress
 
 # bundle completes with subcommands
 complete -c vokun -n "__fish_seen_subcommand_from bundle"  -a "create add rm edit delete" -d "Bundle action"
+
+# log completes with --count flag
+complete -c vokun -n "__fish_seen_subcommand_from log"      -l count -d "Number of entries to show"
+
+# dotfiles completes with subcommands
+complete -c vokun -n "__fish_seen_subcommand_from dotfiles" -a "init apply push pull status edit" -d "Dotfiles action"
 
 # help completes with subcommand names
 complete -c vokun -n "__fish_seen_subcommand_from help"    -a "$subcommands" -d "Subcommand"

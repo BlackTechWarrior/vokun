@@ -47,6 +47,11 @@ confirmation before proceeding.
 
 Already-installed packages are skipped (`--needed` is passed to pacman).
 
+**Conflict pre-flight check:** Before calling pacman, vokun checks each package
+for conflicts via `pacman -Si`. If a conflicting package is already installed on
+the system, vokun warns you before proceeding. This prevents unexpected package
+removals during install.
+
 After a successful install the bundle is recorded in the state file.
 
 | Flag | Description |
@@ -137,6 +142,76 @@ Manage custom bundles from the command line.
 When creating a bundle, you can set `extends = "sysadmin"` in the `[meta]`
 section to inherit all packages from another bundle (see
 [Bundles documentation](bundles.md) for details).
+
+### vokun rollback
+
+```
+vokun rollback
+```
+
+Undo the last reversible action. Reversible actions are: bundle install, bundle
+remove, get, and yeet. Vokun shows what will be undone and asks for confirmation
+before proceeding. The undo operation is itself logged to the action log.
+
+Rollback uses the action log (`~/.config/vokun/vokun.log`) to determine the
+most recent reversible action.
+
+---
+
+## Action log
+
+### vokun log
+
+```
+vokun log [--count N]
+```
+
+Display recent entries from the action log. Every bundle install, remove, get,
+yeet, rollback, and dotfiles action is automatically recorded to
+`~/.config/vokun/vokun.log` with the format:
+
+```
+timestamp|action|target|details|profile
+```
+
+Entries are color-coded by action type (green for installs, red for removals).
+
+| Flag | Description |
+|------|-------------|
+| `--count N` | Number of entries to show (default: 20) |
+
+---
+
+## Dotfile management
+
+### vokun dotfiles
+
+```
+vokun dotfiles init
+vokun dotfiles apply
+vokun dotfiles push
+vokun dotfiles pull
+vokun dotfiles status
+vokun dotfiles edit
+```
+
+Unified wrapper around chezmoi, yadm, or stow. The backend is auto-detected
+(in that order of preference) or can be set explicitly via `dotfiles.backend` in
+`vokun.conf`.
+
+All destructive subcommands (apply, push, pull) show a preview of the changes
+and require confirmation before proceeding.
+
+| Subcommand | Description |
+|------------|-------------|
+| `init` | Initialize dotfile tracking with the detected backend |
+| `apply` | Apply dotfiles to the system (shows preview, confirms) |
+| `push` | Push local dotfile changes to the upstream repository |
+| `pull` | Pull dotfile changes from the upstream repository |
+| `status` | Show the current status of tracked dotfiles |
+| `edit` | Open a tracked dotfile in your editor |
+
+All dotfiles actions are recorded in the action log.
 
 ---
 

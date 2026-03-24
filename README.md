@@ -76,6 +76,7 @@ vokun install <bundle> --pick               # Interactively select which package
 vokun install <bundle> --exclude pkg1,pkg2  # Install everything except these packages
 vokun install <bundle> --only pkg1,pkg2     # Install only these packages from the bundle
 vokun install <bundle> --dry-run            # Preview what would be installed
+vokun rollback                              # Undo the last reversible action
 vokun remove  <bundle>                      # Remove packages unique to this bundle
 vokun remove  <bundle> --dry-run            # Preview what would be removed
 vokun list                                  # List all available bundles
@@ -83,6 +84,10 @@ vokun list --installed                      # List installed bundles only
 vokun info    <bundle>                      # Show bundle contents without installing
 vokun search  <keyword>                     # Search bundles by name, tag, or package
 ```
+
+Install also runs a **conflict pre-flight check** -- before calling pacman, each
+package is checked via `pacman -Si` for conflicts with already-installed
+packages. If conflicts are found, you are warned before proceeding.
 
 ### Package commands (pacman/paru aliases)
 
@@ -96,6 +101,32 @@ vokun owns    <file>            # Which package owns a file   (pacman -Qo)
 vokun update                    # Full system update          (pacman -Syu)
 vokun update  --aur             # Include AUR packages
 ```
+
+### Action log
+
+```bash
+vokun log                                   # Show last 20 logged actions
+vokun log --count 50                        # Show last 50 logged actions
+```
+
+Every bundle install, remove, get, yeet, rollback, and dotfiles action is
+recorded in `~/.config/vokun/vokun.log`. Entries are color-coded by action type
+(green for installs, red for removals).
+
+### Dotfile management
+
+```bash
+vokun dotfiles init                         # Initialize dotfile tracking
+vokun dotfiles apply                        # Apply dotfiles to the system
+vokun dotfiles push                         # Push dotfile changes upstream
+vokun dotfiles pull                         # Pull dotfile changes from upstream
+vokun dotfiles status                       # Show dotfile tracking status
+vokun dotfiles edit                         # Edit a tracked dotfile
+```
+
+Wraps chezmoi, yadm, or stow behind a unified interface. The backend is
+auto-detected or can be set via `dotfiles.backend` in `vokun.conf`. All
+destructive actions show a preview and require confirmation.
 
 ### System maintenance
 
@@ -267,6 +298,9 @@ fzf = true                     # Use fzf for interactive pickers if available
 [sync]
 hook = false                   # Install pacman hook for new-package notifications
 auto_prompt = true             # After 'vokun get', prompt to add to a bundle
+
+[dotfiles]
+backend = ""                   # chezmoi, yadm, or stow (auto-detected if unset)
 
 [aur]
 trust_threshold = 50           # Minimum votes for "trusted" AUR status

@@ -162,3 +162,27 @@ vokun profile switch default   # Switch back to the default profile
 ```
 
 See the [Configuration](configuration) page for details on how profiles work.
+
+---
+
+## Dotfile management
+
+Vokun can manage your dotfiles through a unified interface that wraps chezmoi,
+yadm, or stow. It auto-detects which backend is installed, or you can set
+`dotfiles.backend` in your config. See the [Commands](commands) page for full
+details.
+
+```bash
+vokun dotfiles init            # Initialize dotfile tracking
+vokun dotfiles apply           # Apply dotfiles to the system
+vokun dotfiles status          # Check status of tracked dotfiles
+```
+
+---
+
+## Rollback
+
+If you make a mistake, `vokun rollback` undoes your last reversible action
+(bundle install, bundle remove, get, or yeet). Vokun shows what will be undone
+and confirms before proceeding. Every action is recorded in the action log,
+which you can review with `vokun log`.
