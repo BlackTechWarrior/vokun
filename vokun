@@ -94,6 +94,8 @@ source "${VOKUN_LIB_DIR}/hook.sh"
 source "${VOKUN_LIB_DIR}/setup.sh"
 # shellcheck source=lib/rollback.sh
 source "${VOKUN_LIB_DIR}/rollback.sh"
+# shellcheck source=lib/dotfiles.sh
+source "${VOKUN_LIB_DIR}/dotfiles.sh"
 
 # --- Initialize ---
 vokun::core::init
@@ -155,9 +157,10 @@ case "$command" in
     setup)      vokun::setup::run ;;
     uninstall)  vokun::setup::uninstall ;;
 
-    # Log & rollback
+    # Log, rollback & dotfiles
     log)        vokun::core::log_show "${ARGS[@]}" ;;
     rollback)   vokun::rollback::run ;;
+    dotfiles)   vokun::dotfiles::dispatch "${ARGS[@]}" ;;
 
     # Help
     help)       vokun::core::help "${ARGS[@]}" ;;

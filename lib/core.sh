@@ -353,6 +353,9 @@ ${VOKUN_COLOR_BOLD}MAINTENANCE${VOKUN_COLOR_RESET}
 ${VOKUN_COLOR_BOLD}AUTOMATION${VOKUN_COLOR_RESET}
     ${VOKUN_COLOR_MAGENTA}hook${VOKUN_COLOR_RESET}    <action>         Manage pacman hook ${VOKUN_COLOR_DIM}(install, remove)${VOKUN_COLOR_RESET}
     ${VOKUN_COLOR_MAGENTA}profile${VOKUN_COLOR_RESET}  <action>         Manage profiles ${VOKUN_COLOR_DIM}(list, switch, create, delete)${VOKUN_COLOR_RESET}
+    ${VOKUN_COLOR_MAGENTA}dotfiles${VOKUN_COLOR_RESET} <action>        Manage dotfiles ${VOKUN_COLOR_DIM}(init, apply, push, pull, status)${VOKUN_COLOR_RESET}
+    ${VOKUN_COLOR_MAGENTA}log${VOKUN_COLOR_RESET}                      View action history
+    ${VOKUN_COLOR_MAGENTA}rollback${VOKUN_COLOR_RESET}                 Undo the last install or remove
     ${VOKUN_COLOR_MAGENTA}setup${VOKUN_COLOR_RESET}                    Check and install optional dependencies
     ${VOKUN_COLOR_MAGENTA}uninstall${VOKUN_COLOR_RESET}                Remove vokun from your system
 
@@ -653,6 +656,41 @@ ${VOKUN_COLOR_BOLD}Actions:${VOKUN_COLOR_RESET}
     remove     Remove the pacman hook (requires sudo)
 EOF
             ;;
+        log)
+            cat <<EOF
+${VOKUN_COLOR_BOLD}vokun log${VOKUN_COLOR_RESET} [--count N]
+
+Show the action history log. Displays timestamped entries for bundle
+installs, removes, package operations, and rollbacks.
+Default: last 20 entries.
+EOF
+            ;;
+        rollback)
+            cat <<EOF
+${VOKUN_COLOR_BOLD}vokun rollback${VOKUN_COLOR_RESET}
+
+Undo the last reversible action (bundle install, remove, get, or yeet).
+Shows what will be undone and confirms before proceeding.
+EOF
+            ;;
+        dotfiles)
+            cat <<EOF
+${VOKUN_COLOR_BOLD}vokun dotfiles${VOKUN_COLOR_RESET} <action>
+
+Manage dotfiles through your preferred tool (chezmoi, yadm, or stow).
+Vokun auto-detects which tool is installed and wraps it safely.
+
+${VOKUN_COLOR_BOLD}Actions:${VOKUN_COLOR_RESET}
+    init [repo]        Initialize dotfile management (clone a repo)
+    apply              Preview and apply dotfile changes
+    push               Commit and push dotfile changes to remote
+    pull               Pull latest dotfiles from remote
+    status             Show dotfile backend and stats
+    edit <file>        Edit a managed dotfile
+
+All destructive actions show a preview and require confirmation.
+EOF
+            ;;
         profile)
             cat <<EOF
 ${VOKUN_COLOR_BOLD}vokun profile${VOKUN_COLOR_RESET} <action>
@@ -717,7 +755,8 @@ vokun::core::unknown() {
     vokun::core::log "  export, import"
     vokun::core::log "  get, yeet, find, which, owns, update"
     vokun::core::log "  orphans, cache, size, recent, foreign, explicit"
-    vokun::core::log "  broken, check, diff, hook, profile, setup, uninstall"
+    vokun::core::log "  broken, check, diff, hook, profile, dotfiles"
+    vokun::core::log "  log, rollback, setup, uninstall"
     vokun::core::log ""
     vokun::core::log "Run 'vokun help' for more information."
     return 1
