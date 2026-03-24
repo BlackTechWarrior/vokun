@@ -140,9 +140,17 @@ vokun::bundles::load_with_extends() {
             vokun::core::warn "Parent bundle '$parent_name' itself has extends — ignored (single-level restriction)"
         fi
 
-        # Merge parent packages into accumulator (last-writer-wins)
+        # Merge parent packages and select sections into accumulator (last-writer-wins)
         local section
-        for section in "packages" "packages.aur" "packages.optional"; do
+        # Also merge any select.* sections from parent
+        local -a parent_sections_list=("packages" "packages.aur" "packages.optional")
+        local ps
+        for ps in "${TOML_SECTIONS[@]}"; do
+            if [[ "$ps" == select.* ]]; then
+                parent_sections_list+=("$ps")
+            fi
+        done
+        for section in "${parent_sections_list[@]}"; do
             local parent_section_keys
             parent_section_keys=$(vokun::toml::keys "$section")
             [[ -z "$parent_section_keys" ]] && continue
@@ -179,9 +187,17 @@ vokun::bundles::load_with_extends() {
         fi
     done
 
-    # Merge child packages on top of parent packages
+    # Merge child packages and select sections on top of parent
     local section
-    for section in "packages" "packages.aur" "packages.optional"; do
+    # Include child select.* sections
+    local -a child_merge_sections=("packages" "packages.aur" "packages.optional")
+    local cs
+    for cs in "${!child_keys[@]}"; do
+        if [[ "$cs" == select.* ]]; then
+            child_merge_sections+=("$cs")
+        fi
+    done
+    for section in "${child_merge_sections[@]}"; do
         local child_section_keys="${child_keys[$section]:-}"
         if [[ -n "$child_section_keys" ]]; then
             while IFS= read -r pkg; do
@@ -248,6 +264,109 @@ vokun::bundles::_run_hooks() {
     done <<< "$hooks"
 
     return 0
+}
+
+# --- Select-one prompts ---
+
+# Prompt user to pick one package from a [select.*] category
+# Detects already-installed options, offers Skip.
+# Sets VOKUN_SELECT_RESULT to the chosen package name, or "" if skipped.
+# Usage: vokun::bundles::_prompt_select "editor" "CLI Editor"
+vokun::bundles::_prompt_select() {
+    local category="$1"
+    local label="$2"
+    local section="select.${category}"
+
+    VOKUN_SELECT_RESULT=""
+
+    local keys
+    keys=$(vokun::toml::keys "$section")
+    [[ -z "$keys" ]] && return 0
+
+    # Build parallel arrays of package names and descriptions
+    local -a pkg_names=()
+    local -a pkg_descs=()
+    local default_pkg=""
+    local -a installed_indices=()
+
+    while IFS= read -r key; do
+        [[ -z "$key" ]] && continue
+        if [[ "$key" == "default" ]]; then
+            default_pkg=$(vokun::toml::get "${section}.default" "")
+            continue
+        fi
+        if [[ "$key" == "label" ]]; then
+            continue
+        fi
+        pkg_names+=("$key")
+        pkg_descs+=("$(vokun::toml::get "${section}.${key}" "")")
+        if vokun::core::is_pkg_installed "$key"; then
+            installed_indices+=("${#pkg_names[@]}")
+        fi
+    done <<< "$keys"
+
+    if [[ ${#pkg_names[@]} -eq 0 ]]; then
+        return 0
+    fi
+
+    printf '\n  %sPick a %s:%s\n' "$VOKUN_COLOR_BOLD" "$label" "$VOKUN_COLOR_RESET"
+
+    if command -v fzf &>/dev/null && [[ "${VOKUN_FZF:-true}" == "true" ]]; then
+        # Build fzf input: "name\tdescription [already installed]"
+        local fzf_input=""
+        local i
+        for ((i = 0; i < ${#pkg_names[@]}; i++)); do
+            local marker=""
+            if vokun::core::is_pkg_installed "${pkg_names[$i]}"; then
+                marker=" [already installed]"
+            fi
+            fzf_input+="${pkg_names[$i]}"$'\t'"${pkg_descs[$i]}${marker}"$'\n'
+        done
+        fzf_input+="Skip"$'\t'"Keep what you have / install nothing"$'\n'
+
+        local selected
+        selected=$(printf '%s' "$fzf_input" | fzf --no-multi --with-nth=1.. --delimiter=$'\t' \
+            --prompt="${label}> " \
+            --header="Select one (ENTER to confirm)" \
+            --no-info 2>/dev/null | cut -f1) || true
+
+        if [[ -n "$selected" && "$selected" != "Skip" ]]; then
+            VOKUN_SELECT_RESULT="$selected"
+        fi
+    else
+        # Numbered menu fallback
+        local i
+        for ((i = 0; i < ${#pkg_names[@]}; i++)); do
+            local num=$((i + 1))
+            local marker=""
+            local arrow="  "
+            if vokun::core::is_pkg_installed "${pkg_names[$i]}"; then
+                marker=" ${VOKUN_COLOR_GREEN}[already installed]${VOKUN_COLOR_RESET}"
+                arrow="${VOKUN_COLOR_GREEN}→ ${VOKUN_COLOR_RESET}"
+            fi
+            printf '  %s%s%d)%s %-18s %s%s%s%s\n' \
+                "$arrow" "$VOKUN_COLOR_BOLD" "$num" "$VOKUN_COLOR_RESET" \
+                "${pkg_names[$i]}" \
+                "$VOKUN_COLOR_DIM" "${pkg_descs[$i]}" "$VOKUN_COLOR_RESET" \
+                "$marker"
+        done
+        local skip_num=$(( ${#pkg_names[@]} + 1 ))
+        printf '    %s%d)%s Skip\n' "$VOKUN_COLOR_BOLD" "$skip_num" "$VOKUN_COLOR_RESET"
+
+        printf '\n  %s> ' "$VOKUN_COLOR_RESET"
+        local reply
+        read -r reply
+
+        if [[ "$reply" =~ ^[0-9]+$ ]] && (( reply >= 1 && reply <= ${#pkg_names[@]} )); then
+            VOKUN_SELECT_RESULT="${pkg_names[$((reply - 1))]}"
+        fi
+    fi
+
+    if [[ -n "$VOKUN_SELECT_RESULT" ]]; then
+        printf '  %s→ %s%s\n' "$VOKUN_COLOR_GREEN" "$VOKUN_SELECT_RESULT" "$VOKUN_COLOR_RESET"
+    else
+        printf '  %s→ Skipped%s\n' "$VOKUN_COLOR_DIM" "$VOKUN_COLOR_RESET"
+    fi
 }
 
 # --- vokun list ---
@@ -435,6 +554,41 @@ vokun::bundles::info() {
             fi
             printf '    %-25s %s%s\n' "$pkg" "${VOKUN_COLOR_DIM}${desc}${VOKUN_COLOR_RESET}" "$status"
         done <<< "$opt_keys"
+    fi
+
+    # Select-one categories
+    local -a info_select_cats
+    mapfile -t info_select_cats < <(vokun::toml::subsections "select")
+    if [[ ${#info_select_cats[@]} -gt 0 ]]; then
+        local sel_cat
+        for sel_cat in "${info_select_cats[@]}"; do
+            [[ -z "$sel_cat" ]] && continue
+            local sel_label sel_section sel_keys
+            sel_label=$(vokun::toml::get "select.${sel_cat}.label" "$sel_cat")
+            sel_section="select.${sel_cat}"
+            sel_keys=$(vokun::toml::keys "$sel_section")
+            [[ -z "$sel_keys" ]] && continue
+
+            # Check if user already has a selection for this bundle
+            local current_sel=""
+            if vokun::state::is_installed "$name"; then
+                current_sel=$(vokun::state::get_selection "$name" "$sel_cat")
+            fi
+
+            printf '\n  %sSelect one — %s:%s\n' "$VOKUN_COLOR_MAGENTA" "$sel_label" "$VOKUN_COLOR_RESET"
+            while IFS= read -r pkg; do
+                [[ -z "$pkg" || "$pkg" == "default" || "$pkg" == "label" ]] && continue
+                local desc status="" selected_marker=""
+                desc=$(vokun::toml::get "${sel_section}.${pkg}")
+                if vokun::core::is_pkg_installed "$pkg"; then
+                    status="${VOKUN_COLOR_GREEN} [installed]${VOKUN_COLOR_RESET}"
+                fi
+                if [[ "$pkg" == "$current_sel" ]]; then
+                    selected_marker="${VOKUN_COLOR_CYAN} ★${VOKUN_COLOR_RESET}"
+                fi
+                printf '    %-25s %s%s%s\n' "$pkg" "${VOKUN_COLOR_DIM}${desc}${VOKUN_COLOR_RESET}" "$status" "$selected_marker"
+            done <<< "$sel_keys"
+        done
     fi
 
     printf '\n'
@@ -701,6 +855,35 @@ vokun::bundles::install() {
         printf '\n  %sSkipped:%s %s\n' "$VOKUN_COLOR_DIM" "$VOKUN_COLOR_RESET" "${skipped_by_filter[*]}"
     fi
 
+    # Process [select.*] sections — pick-one categories
+    local -a select_pairs=()
+    local -a select_packages=()
+    local -a select_categories
+    mapfile -t select_categories < <(vokun::toml::subsections "select")
+
+    if [[ ${#select_categories[@]} -gt 0 && "$dry_run" == false ]]; then
+        printf '\n%s\n' "$(printf '%.0s─' {1..50})"
+        vokun::core::info "Choose your preferred tools:"
+
+        local sel_cat
+        for sel_cat in "${select_categories[@]}"; do
+            [[ -z "$sel_cat" ]] && continue
+            local sel_label
+            sel_label=$(vokun::toml::get "select.${sel_cat}.label" "$sel_cat")
+            vokun::bundles::_prompt_select "$sel_cat" "$sel_label"
+            if [[ -n "$VOKUN_SELECT_RESULT" ]]; then
+                select_pairs+=("${sel_cat}=${VOKUN_SELECT_RESULT}")
+                if ! vokun::core::is_pkg_installed "$VOKUN_SELECT_RESULT"; then
+                    select_packages+=("$VOKUN_SELECT_RESULT")
+                    repo_packages+=("$VOKUN_SELECT_RESULT")
+                else
+                    already_installed+=("$VOKUN_SELECT_RESULT")
+                fi
+            fi
+        done
+        printf '\n'
+    fi
+
     # Optional packages
     local opt_keys
     opt_keys=$(vokun::toml::keys "packages.optional")
@@ -881,6 +1064,11 @@ vokun::bundles::install() {
 
     vokun::state::add_bundle "$name" "$all_pkgs" "$skipped_pkgs" "default"
 
+    # Save selections if any were made
+    if [[ ${#select_pairs[@]} -gt 0 ]]; then
+        vokun::state::save_selections "$name" "${select_pairs[@]}"
+    fi
+
     # Log the action
     local installed_list
     installed_list=$(printf '%s ' "${repo_packages[@]}" "${aur_packages[@]}")
@@ -1002,4 +1190,159 @@ vokun::bundles::remove() {
     vokun::state::remove_bundle "$name"
     printf '\n'
     vokun::core::success "Bundle '$name' removed!"
+}
+
+# --- vokun select ---
+
+# Change select-one choices for an installed bundle
+vokun::bundles::select() {
+    local name="${1:-}"
+
+    if [[ -z "$name" ]]; then
+        vokun::core::error "Usage: vokun select <bundle>"
+        return 1
+    fi
+
+    if ! vokun::state::is_installed "$name"; then
+        vokun::core::error "Bundle '$name' is not installed"
+        vokun::core::log "Install it first with 'vokun install $name'."
+        return 1
+    fi
+
+    local file
+    file=$(vokun::bundles::find_by_name "$name") || {
+        vokun::core::error "Bundle definition not found: $name"
+        return 1
+    }
+
+    vokun::bundles::load_with_extends "$file"
+
+    local -a select_categories
+    mapfile -t select_categories < <(vokun::toml::subsections "select")
+
+    if [[ ${#select_categories[@]} -eq 0 ]]; then
+        vokun::core::info "Bundle '$name' has no select-one categories."
+        return 0
+    fi
+
+    printf '\n%sChange selections for: %s%s\n' "$VOKUN_COLOR_BOLD" "$name" "$VOKUN_COLOR_RESET"
+    printf '%s\n' "$(printf '%.0s─' {1..50})"
+
+    # Show current selections
+    local -a current_sels
+    mapfile -t current_sels < <(vokun::state::get_selections "$name")
+    if [[ ${#current_sels[@]} -gt 0 ]]; then
+        printf '\n  %sCurrent selections:%s\n' "$VOKUN_COLOR_DIM" "$VOKUN_COLOR_RESET"
+        local sel_line
+        for sel_line in "${current_sels[@]}"; do
+            [[ -z "$sel_line" ]] && continue
+            local sel_cat="${sel_line%%=*}"
+            local sel_pkg="${sel_line#*=}"
+            local sel_label
+            sel_label=$(vokun::toml::get "select.${sel_cat}.label" "$sel_cat")
+            printf '    %s: %s%s%s\n' "$sel_label" "$VOKUN_COLOR_CYAN" "$sel_pkg" "$VOKUN_COLOR_RESET"
+        done
+    fi
+
+    printf '\n'
+
+    local -a new_packages=()
+    local -a old_packages=()
+
+    local sel_cat
+    for sel_cat in "${select_categories[@]}"; do
+        [[ -z "$sel_cat" ]] && continue
+        local sel_label
+        sel_label=$(vokun::toml::get "select.${sel_cat}.label" "$sel_cat")
+
+        local old_choice
+        old_choice=$(vokun::state::get_selection "$name" "$sel_cat")
+
+        vokun::bundles::_prompt_select "$sel_cat" "$sel_label"
+
+        local new_choice="$VOKUN_SELECT_RESULT"
+
+        if [[ -z "$new_choice" ]]; then
+            # Skipped — keep old selection
+            continue
+        fi
+
+        if [[ "$new_choice" == "$old_choice" ]]; then
+            vokun::core::log "  (unchanged)"
+            continue
+        fi
+
+        # Track old package for removal (if it was installed by us)
+        if [[ -n "$old_choice" ]]; then
+            old_packages+=("$old_choice")
+        fi
+
+        # Track new package for installation
+        if ! vokun::core::is_pkg_installed "$new_choice"; then
+            new_packages+=("$new_choice")
+        fi
+
+        # Update state immediately
+        vokun::state::update_selection "$name" "$sel_cat" "$new_choice"
+
+        # Also update the bundle's package list in state
+        local tmp
+        tmp=$(mktemp)
+        # Add new choice to packages, remove old choice
+        if [[ -n "$old_choice" ]]; then
+            jq --arg b "$name" --arg old "$old_choice" --arg new "$new_choice" \
+                '.installed_bundles[$b].packages = ([.installed_bundles[$b].packages[] | select(. != $old)] + [$new] | unique)' \
+                "$VOKUN_STATE_FILE" > "$tmp" && mv "$tmp" "$VOKUN_STATE_FILE"
+        else
+            jq --arg b "$name" --arg new "$new_choice" \
+                '.installed_bundles[$b].packages = (.installed_bundles[$b].packages + [$new] | unique)' \
+                "$VOKUN_STATE_FILE" > "$tmp" && mv "$tmp" "$VOKUN_STATE_FILE"
+        fi
+    done
+
+    # Install new packages
+    if [[ ${#new_packages[@]} -gt 0 ]]; then
+        printf '\n'
+        vokun::core::info "Installing: ${new_packages[*]}"
+        vokun::core::run_pacman "-S" "--needed" "${new_packages[@]}" || {
+            vokun::core::error "Failed to install new selections"
+            return 1
+        }
+    fi
+
+    # Offer to remove old packages (only if not shared and not the same as new)
+    local -a removable=()
+    local old_pkg
+    for old_pkg in "${old_packages[@]}"; do
+        [[ -z "$old_pkg" ]] && continue
+        # Don't remove if it's also a new selection
+        if vokun::core::in_array "$old_pkg" "${new_packages[@]+"${new_packages[@]}"}"; then
+            continue
+        fi
+        # Don't remove if shared with other bundles
+        local shared
+        shared=$(vokun::state::get_shared_packages "$name" "$old_pkg")
+        if [[ -n "$shared" ]]; then
+            continue
+        fi
+        if vokun::core::is_pkg_installed "$old_pkg"; then
+            removable+=("$old_pkg")
+        fi
+    done
+
+    if [[ ${#removable[@]} -gt 0 ]]; then
+        printf '\n'
+        printf '  %sOld selections still installed:%s %s\n' "$VOKUN_COLOR_DIM" "$VOKUN_COLOR_RESET" "${removable[*]}"
+        printf '  Remove them? [y/N] '
+        local reply
+        read -r reply
+        if [[ "$reply" =~ ^[yY] ]]; then
+            vokun::core::run_pacman_only "-Rns" "${removable[@]}" || true
+        fi
+    fi
+
+    vokun::core::log_action "bundle-select" "$name" "changed selections"
+
+    printf '\n'
+    vokun::core::success "Selections updated for '$name'!"
 }

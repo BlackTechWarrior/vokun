@@ -1,21 +1,27 @@
 [meta]
 name = "Media Playback"
-description = "Video and audio players for local media files and streaming services"
+description = "Pick your preferred video and audio players"
 tags = ["desktop", "media", "entertainment"]
-version = "1.0.0"
+version = "1.1.0"
 
-[packages]
-vlc = "Versatile media player that handles nearly every audio and video format out of the box"
+[select.video-player]
+label = "Video Player"
 mpv = "Lightweight and highly configurable video player with excellent codec support"
-audacious = "Lightweight audio player with a classic interface and plugin support for many formats"
-celluloid = "Simple GTK frontend for mpv that provides a clean graphical video playback experience"
+vlc = "Versatile media player that handles nearly every audio and video format"
+celluloid = "Simple GTK frontend for mpv with a clean graphical interface"
+default = "mpv"
+
+[select.audio-player]
+label = "Audio Player"
+audacious = "Lightweight audio player with a classic interface and plugin support"
+deadbeef = "Highly customizable audio player with tabbed playlists and plugins"
+default = "audacious"
 
 [packages.optional]
-deadbeef = "Highly customizable audio player with tabbed playlists and extensive plugin support"
 kodi = "Full-featured media center for organizing and playing video, music, and photos"
 
 [packages.aur]
 spotify = "Music streaming service with access to millions of songs, podcasts, and playlists"
 
 [hooks]
-post_install = ["echo 'Media players installed. Set your preferred default player in your desktop environment settings.'"]
+post_install = ["echo 'Media players installed. Set your preferred defaults in your desktop settings.'"]

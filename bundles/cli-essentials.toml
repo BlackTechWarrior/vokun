@@ -1,0 +1,31 @@
+[meta]
+name = "CLI Essentials"
+description = "Core CLI tools every fresh install needs — pick your markdown viewer and man page setup"
+tags = ["cli", "essentials"]
+version = "1.0.0"
+
+[select.markdown-viewer]
+label = "Markdown Viewer"
+glow = "Render markdown beautifully in the terminal with glamour styling"
+mdcat = "Fancy markdown rendering with images in supported terminals"
+default = "glow"
+
+[select.man-pages]
+label = "Man Page Experience"
+tldr = "Simplified community-driven man pages with practical examples"
+tealdeer = "Fast Rust implementation of tldr pages with offline caching"
+default = "tldr"
+
+[packages]
+man-db = "Manual page viewer and database utilities for reading documentation"
+man-pages = "Linux kernel and C library man pages for POSIX and system call reference"
+wget = "Network downloader supporting HTTP, HTTPS, and FTP protocols"
+curl = "Command-line tool for transferring data with URL syntax"
+unzip = "Extraction utility for ZIP archives"
+p7zip = "Command-line version of 7-Zip for high-compression archiving"
+rsync = "Fast incremental file transfer and synchronization tool"
+openssh = "Secure shell client and server for encrypted remote access"
+
+[packages.optional]
+dog = "Command-line DNS client with colorful output and DNS-over-HTTPS support"
+bandwhich = "Terminal bandwidth utilization tool showing per-process network usage"

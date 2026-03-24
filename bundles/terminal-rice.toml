@@ -1,18 +1,38 @@
 [meta]
 name = "Terminal Customization"
-description = "Shell frameworks, prompt themes, and terminal tools for a beautiful CLI setup"
+description = "Choose your shell, editor, and terminal emulator for a personalized CLI setup"
 tags = ["desktop", "rice", "terminal"]
-version = "1.0.0"
+version = "1.1.0"
+
+[select.shell]
+label = "Shell"
+zsh = "Powerful interactive shell with advanced completion, globbing, and scripting"
+fish = "Friendly interactive shell with autosuggestions and syntax highlighting out of the box"
+bash = "The classic Bourne Again Shell (already installed on most systems)"
+default = "zsh"
+
+[select.editor]
+label = "Terminal Editor"
+neovim = "Hyperextensible Vim-based editor with Lua plugins and LSP support"
+helix = "Post-modern modal editor with built-in LSP and tree-sitter"
+micro = "Terminal editor with intuitive keybindings (Ctrl+S, Ctrl+C, Ctrl+V)"
+vim = "The classic extensible text editor with decades of plugins and documentation"
+default = "neovim"
+
+[select.terminal]
+label = "Terminal Emulator"
+alacritty = "GPU-accelerated terminal emulator focused on simplicity and performance"
+kitty = "GPU-accelerated terminal with images, ligatures, and scripting support"
+foot = "Lightweight Wayland-native terminal emulator with sixel image support"
+wezterm = "GPU-accelerated terminal with multiplexing, ligatures, and Lua config"
+default = "alacritty"
 
 [packages]
-starship = "Cross-shell prompt with smart context display for git, languages, and cloud environments"
+starship = "Cross-shell prompt with smart context display for git, languages, and cloud"
 tmux = "Terminal multiplexer for splitting panes, managing sessions, and persisting work"
-zsh = "Powerful interactive shell with advanced completion, globbing, and scripting features"
-neovim = "Hyperextensible Vim-based text editor with Lua plugin ecosystem and LSP support"
-alacritty = "GPU-accelerated terminal emulator focused on simplicity and performance"
 
 [packages.aur]
 oh-my-zsh-git = "Community-driven framework for managing Zsh configuration with plugins and themes"
 
 [hooks]
-post_install = ["echo 'Terminal rice installed. Add eval \"$(starship init zsh)\" to your .zshrc for the prompt.'"]
+post_install = ["echo 'Terminal setup installed. Add eval \"$(starship init bash)\" or equivalent to your shell rc.'"]

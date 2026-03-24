@@ -115,6 +115,81 @@ vokun::state::add_bundle() {
         }' "$VOKUN_STATE_FILE" > "$tmp" && mv "$tmp" "$VOKUN_STATE_FILE"
 }
 
+# Save selections for a bundle (category -> chosen package)
+# Usage: vokun::state::save_selections "sysadmin" "editor=neovim" "pager=bat"
+vokun::state::save_selections() {
+    local bundle="$1"
+    shift
+
+    if ! command -v jq &>/dev/null; then
+        vokun::core::warn "jq not available — selections not saved"
+        return
+    fi
+
+    # Build a JSON object from "key=value" pairs
+    local sel_json='{}'
+    local pair
+    for pair in "$@"; do
+        local category="${pair%%=*}"
+        local choice="${pair#*=}"
+        sel_json=$(printf '%s' "$sel_json" | jq --arg k "$category" --arg v "$choice" '. + {($k): $v}')
+    done
+
+    local tmp
+    tmp=$(mktemp)
+    jq --arg b "$bundle" --argjson sel "$sel_json" \
+        '.installed_bundles[$b].selections = $sel' \
+        "$VOKUN_STATE_FILE" > "$tmp" && mv "$tmp" "$VOKUN_STATE_FILE"
+}
+
+# Get the selected package for a category in a bundle
+# Usage: vokun::state::get_selection "sysadmin" "editor"  =>  "neovim"
+vokun::state::get_selection() {
+    local bundle="$1"
+    local category="$2"
+
+    if ! command -v jq &>/dev/null; then
+        return
+    fi
+
+    jq -r --arg b "$bundle" --arg c "$category" \
+        '.installed_bundles[$b].selections[$c] // empty' \
+        "$VOKUN_STATE_FILE" 2>/dev/null
+}
+
+# Get all selections for a bundle as "category=choice" lines
+# Usage: vokun::state::get_selections "sysadmin"
+vokun::state::get_selections() {
+    local bundle="$1"
+
+    if ! command -v jq &>/dev/null; then
+        return
+    fi
+
+    jq -r --arg b "$bundle" \
+        '.installed_bundles[$b].selections // {} | to_entries[] | "\(.key)=\(.value)"' \
+        "$VOKUN_STATE_FILE" 2>/dev/null
+}
+
+# Update a single selection for a bundle
+# Usage: vokun::state::update_selection "sysadmin" "editor" "helix"
+vokun::state::update_selection() {
+    local bundle="$1"
+    local category="$2"
+    local choice="$3"
+
+    if ! command -v jq &>/dev/null; then
+        vokun::core::warn "jq not available — selection not updated"
+        return
+    fi
+
+    local tmp
+    tmp=$(mktemp)
+    jq --arg b "$bundle" --arg c "$category" --arg v "$choice" \
+        '.installed_bundles[$b].selections[$c] = $v' \
+        "$VOKUN_STATE_FILE" > "$tmp" && mv "$tmp" "$VOKUN_STATE_FILE"
+}
+
 # Remove a bundle from state
 vokun::state::remove_bundle() {
     local bundle="$1"

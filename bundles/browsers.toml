@@ -1,19 +1,21 @@
 [meta]
 name = "Web Browsers"
-description = "Web browsers for everyday browsing, privacy, and development"
+description = "Pick your primary web browser plus optional extras"
 tags = ["desktop", "web", "browsers"]
-version = "1.0.0"
+version = "1.1.0"
 
-[packages]
-firefox = "Open-source web browser with strong privacy features and extension support"
+[select.browser]
+label = "Primary Browser"
+firefox = "Open-source browser with strong privacy features and extension support"
+chromium = "Open-source Chromium without proprietary Google components"
+default = "firefox"
 
 [packages.optional]
-chromium = "Open-source browser that forms the base of Google Chrome, without proprietary components"
-torbrowser-launcher = "Launcher for Tor Browser, enabling anonymous and censorship-resistant web browsing"
+torbrowser-launcher = "Launcher for Tor Browser, enabling anonymous web browsing"
 
 [packages.aur]
-brave-bin = "Privacy-focused Chromium-based browser with built-in ad and tracker blocking"
-google-chrome = "Google's web browser with built-in sync, translation, and media codec support"
+brave-bin = "Privacy-focused Chromium-based browser with built-in ad blocking"
+google-chrome = "Google's browser with built-in sync, translation, and media codecs"
 
 [hooks]
-post_install = ["echo 'Browsers installed. Set your default browser in your desktop environment settings.'"]
+post_install = ["echo 'Browser installed. Set your default browser in your desktop environment settings.'"]

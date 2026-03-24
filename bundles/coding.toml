@@ -2,7 +2,7 @@
 name = "Core Development Tools"
 description = "Essential compilers, debuggers, and development utilities for any programmer"
 tags = ["dev", "essentials"]
-version = "1.0.0"
+version = "1.1.0"
 
 [packages]
 git = "Distributed version control system, the backbone of modern software development"
@@ -12,9 +12,6 @@ gdb = "GNU debugger for stepping through code and diagnosing crashes"
 valgrind = "Memory error detector and profiler for finding leaks and undefined behavior"
 strace = "Trace system calls and signals to debug program interactions with the kernel"
 ltrace = "Trace library calls to understand how a program uses shared libraries"
-man-db = "Manual page viewer and database utilities for reading documentation"
-man-pages = "Linux kernel and C library man pages for POSIX and system call reference"
-tldr = "Simplified, community-driven man pages with practical usage examples"
 
 [packages.optional]
 bear = "Build intercept tool that generates compile_commands.json for IDE integration"

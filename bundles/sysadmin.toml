@@ -1,17 +1,35 @@
 [meta]
 name = "System Administration Toolkit"
-description = "Modern CLI utilities for system monitoring, file management, and productivity"
+description = "Modern CLI utilities with your choice of pager, file manager, and system monitor"
 tags = ["admin", "essentials", "cli"]
-version = "1.0.0"
+version = "1.1.0"
+
+[select.pager]
+label = "Pretty Pager"
+bat = "Cat clone with syntax highlighting, line numbers, and git integration"
+most = "Pager with horizontal scrolling and multiple windows"
+less = "Standard pager (already installed on most systems)"
+default = "bat"
+
+[select.file-manager]
+label = "Terminal File Manager"
+yazi = "Blazing fast terminal file manager with async I/O and image preview"
+lf = "Terminal file manager inspired by ranger, written in Go"
+ranger = "Console file manager with VI key bindings and file preview"
+nnn = "Tiny, lightning fast, feature-packed terminal file manager"
+default = "yazi"
+
+[select.system-monitor]
+label = "System Monitor"
+btop = "Resource monitor with CPU, memory, disk, network stats in a rich TUI"
+htop = "Interactive process viewer with a full-color terminal UI"
+default = "btop"
 
 [packages]
-htop = "Interactive process viewer with a full-color terminal UI for system monitoring"
-btop = "Resource monitor with CPU, memory, disk, network, and process stats in a rich TUI"
 fastfetch = "Fast system information tool that displays OS, kernel, and hardware details"
 tree = "Recursive directory listing that shows folder structure in a tree format"
 fd = "Simple and fast alternative to find with intuitive syntax and colorized output"
 ripgrep = "Blazingly fast recursive text search tool that respects gitignore rules"
-bat = "Cat clone with syntax highlighting, line numbers, and git integration"
 eza = "Modern replacement for ls with colors, icons, tree view, and git status"
 dust = "Intuitive disk usage analyzer that shows directory sizes as a visual chart"
 duf = "Disk usage and free space utility with a clean tabular output"

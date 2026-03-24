@@ -1,20 +1,34 @@
 [meta]
 name = "Office Suite"
-description = "Document editing, email, PDF viewing, and spell checking for everyday productivity"
+description = "Pick your office suite, PDF viewer, and email client for everyday productivity"
 tags = ["productivity", "office"]
-version = "1.0.0"
+version = "1.1.0"
+
+[select.office-suite]
+label = "Office Suite"
+libreoffice-fresh = "Full-featured office suite with writer, calc, impress, and draw"
+calligra = "KDE office suite with unique tools like a flowchart editor"
+default = "libreoffice-fresh"
+
+[select.pdf-viewer]
+label = "PDF Viewer"
+evince = "Lightweight PDF and document viewer for GNOME-based desktops"
+okular = "Versatile document viewer supporting PDF, ePub, and more for KDE desktops"
+zathura = "Minimalist document viewer with vim-like keybindings"
+default = "evince"
+
+[select.email-client]
+label = "Email Client"
+thunderbird = "Feature-rich email client with calendar, contacts, and RSS support"
+evolution = "GNOME email client with calendar, contacts, and Exchange support"
+default = "thunderbird"
 
 [packages]
-libreoffice-fresh = "Full-featured office suite with writer, calc, impress, and draw applications"
-thunderbird = "Feature-rich email client with calendar, contacts, and RSS feed support"
-evince = "Lightweight PDF and document viewer for GNOME-based desktops"
-okular = "Versatile document viewer supporting PDF, ePub, and more for KDE-based desktops"
 hunspell = "Spell checking engine used by LibreOffice, Firefox, and other applications"
-hunspell-en_us = "US English dictionary for hunspell-based spell checking across applications"
+hunspell-en_us = "US English dictionary for hunspell-based spell checking"
 
 [packages.optional]
-calligra = "Alternative office suite from KDE with unique tools like a flowchart editor"
 gnucash = "Double-entry financial accounting application for personal and small business use"
 
 [hooks]
-post_install = ["echo 'Office suite installed. Launch LibreOffice from your application menu or run libreoffice to get started.'"]
+post_install = ["echo 'Office suite installed. Launch from your application menu to get started.'"]

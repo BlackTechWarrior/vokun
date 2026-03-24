@@ -170,6 +170,25 @@ vokun::toml::get_array() {
     fi
 }
 
+# Get all subsections under a given prefix
+# Usage: vokun::toml::subsections "select"  =>  "editor\npager\nmarkdown"
+vokun::toml::subsections() {
+    local prefix="$1"
+    local -A seen=()
+    local section
+    for section in "${TOML_SECTIONS[@]}"; do
+        if [[ "$section" == "${prefix}."* ]]; then
+            local sub="${section#"${prefix}."}"
+            # Only first level (no dots)
+            sub="${sub%%.*}"
+            if [[ ! -v "seen[$sub]" ]]; then
+                seen["$sub"]=1
+                printf '%s\n' "$sub"
+            fi
+        fi
+    done
+}
+
 # --- Internal helpers ---
 
 # Strip inline comment from a line (simple: first # not inside quotes)

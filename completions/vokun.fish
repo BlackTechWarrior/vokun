@@ -5,10 +5,11 @@
 complete -c vokun -f
 
 # Subcommands
-set -l subcommands install remove list info search get yeet find which owns update orphans cache size recent foreign explicit export import broken hook setup uninstall bundle sync check diff profile log rollback dotfiles why snapshot untracked doctor help
+set -l subcommands install remove select list info search get yeet find which owns update orphans cache size recent foreign explicit export import broken hook setup uninstall bundle sync check diff profile log rollback dotfiles why snapshot untracked doctor help
 
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a install  -d "Install a bundle"
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a remove   -d "Remove a bundle"
+complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a select   -d "Change pick-one selections for a bundle"
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a list     -d "List bundles"
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a info     -d "Show bundle info"
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a search   -d "Search for packages"
@@ -62,6 +63,9 @@ complete -c vokun -n "__fish_seen_subcommand_from info"    -a "(vokun list --nam
 # remove completes with installed bundle names and flags
 complete -c vokun -n "__fish_seen_subcommand_from remove"  -a "(vokun list --names-only 2>/dev/null)" -d "Installed bundle"
 complete -c vokun -n "__fish_seen_subcommand_from remove"  -l dry-run  -d "Preview without removing"
+
+# select completes with installed bundle names
+complete -c vokun -n "__fish_seen_subcommand_from select"  -a "(vokun list --names-only 2>/dev/null)" -d "Installed bundle"
 
 # export completes with --json flag
 complete -c vokun -n "__fish_seen_subcommand_from export"  -l json -d "Export in JSON format"

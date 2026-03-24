@@ -323,6 +323,7 @@ ${VOKUN_COLOR_BOLD}USAGE${VOKUN_COLOR_RESET}
 ${VOKUN_COLOR_BOLD}BUNDLE COMMANDS${VOKUN_COLOR_RESET}
     ${VOKUN_COLOR_GREEN}install${VOKUN_COLOR_RESET} <bundle>         Install a package bundle
     ${VOKUN_COLOR_GREEN}remove${VOKUN_COLOR_RESET}  <bundle>         Remove a bundle's unique packages
+    ${VOKUN_COLOR_GREEN}select${VOKUN_COLOR_RESET}  <bundle>         Change pick-one selections for a bundle
     ${VOKUN_COLOR_GREEN}list${VOKUN_COLOR_RESET}                     List available bundles
     ${VOKUN_COLOR_GREEN}info${VOKUN_COLOR_RESET}    <bundle>         Show bundle details
     ${VOKUN_COLOR_GREEN}search${VOKUN_COLOR_RESET}  <keyword>        Search bundles by name, tag, or package
@@ -409,6 +410,19 @@ Shared packages are kept and listed.
 
 ${VOKUN_COLOR_BOLD}Examples:${VOKUN_COLOR_RESET}
     vokun remove gaming
+EOF
+            ;;
+        select)
+            cat <<EOF
+${VOKUN_COLOR_BOLD}vokun select${VOKUN_COLOR_RESET} <bundle>
+
+Change your pick-one selections for an installed bundle. Bundles with
+[select.*] sections let you choose one tool per category (e.g., editor,
+shell, pager). This command lets you switch your choice after install.
+
+${VOKUN_COLOR_BOLD}Examples:${VOKUN_COLOR_RESET}
+    vokun select terminal-rice    # Switch editor, shell, or terminal
+    vokun select sysadmin         # Change pager or file manager
 EOF
             ;;
         list)

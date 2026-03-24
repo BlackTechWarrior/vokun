@@ -126,6 +126,7 @@ case "$command" in
     # Bundle commands
     install)    vokun::bundles::install "${ARGS[@]}" ;;
     remove)     vokun::bundles::remove "${ARGS[@]}" ;;
+    select)     vokun::bundles::select "${ARGS[@]}" ;;
     list)       vokun::bundles::list "${ARGS[@]}" ;;
     info)       vokun::bundles::info "${ARGS[@]}" ;;
     search)     vokun::bundles::search "${ARGS[@]}" ;;

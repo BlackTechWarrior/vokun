@@ -1,19 +1,25 @@
 [meta]
 name = "Photo Editing"
-description = "Image editors, RAW processors, and photo management tools for photographers and artists"
+description = "Pick your image editor and RAW processor for photography and design"
 tags = ["creative", "photography", "media"]
-version = "1.0.0"
+version = "1.1.0"
 
-[packages]
+[select.image-editor]
+label = "Image Editor"
 gimp = "Powerful image editor for photo retouching, composition, and graphic design"
-darktable = "Non-destructive RAW photo processor and workflow manager for digital photographers"
-rawtherapee = "Advanced RAW image developer with precise color management and batch processing"
 krita = "Professional digital painting application with brush engines and layer support"
-shotwell = "Simple photo manager for importing, organizing, and sharing your photo library"
+default = "gimp"
+
+[select.raw-processor]
+label = "RAW Photo Processor"
+darktable = "Non-destructive RAW processor and workflow manager for digital photographers"
+rawtherapee = "Advanced RAW developer with precise color management and batch processing"
+default = "darktable"
 
 [packages.optional]
+shotwell = "Simple photo manager for importing, organizing, and sharing your photo library"
 digikam = "Advanced photo management with face detection, geotagging, and metadata editing"
 hugin = "Panorama stitcher that assembles multiple overlapping photos into wide-angle images"
 
 [hooks]
-post_install = ["echo 'Photo editing tools installed. Import your photos into Shotwell or digiKam to organize your library.'"]
+post_install = ["echo 'Photo editing tools installed. Import your photos to organize your library.'"]
