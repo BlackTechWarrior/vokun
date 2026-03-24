@@ -33,15 +33,15 @@ vokun::bundles::name_from_path() {
 vokun::bundles::find_by_name() {
     local name="$1"
 
-    # Check system bundles first
-    if [[ -n "$VOKUN_SYSTEM_BUNDLE_DIR" && -f "${VOKUN_SYSTEM_BUNDLE_DIR}/${name}.toml" ]]; then
-        printf '%s' "${VOKUN_SYSTEM_BUNDLE_DIR}/${name}.toml"
+    # Check custom bundles FIRST — user overrides take priority
+    if [[ -f "${VOKUN_CONFIG_DIR}/bundles/custom/${name}.toml" ]]; then
+        printf '%s' "${VOKUN_CONFIG_DIR}/bundles/custom/${name}.toml"
         return
     fi
 
-    # Check custom bundles
-    if [[ -f "${VOKUN_CONFIG_DIR}/bundles/custom/${name}.toml" ]]; then
-        printf '%s' "${VOKUN_CONFIG_DIR}/bundles/custom/${name}.toml"
+    # Fall back to system bundles
+    if [[ -n "$VOKUN_SYSTEM_BUNDLE_DIR" && -f "${VOKUN_SYSTEM_BUNDLE_DIR}/${name}.toml" ]]; then
+        printf '%s' "${VOKUN_SYSTEM_BUNDLE_DIR}/${name}.toml"
         return
     fi
 
