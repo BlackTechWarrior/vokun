@@ -1,0 +1,17 @@
+[meta]
+name = "Multimedia Tools"
+description = "Audio, video, and image processing tools for media creation and conversion"
+tags = ["media", "creative"]
+version = "1.0.0"
+
+[packages]
+ffmpeg = "Swiss-army knife for audio and video transcoding, streaming, and processing"
+mpv = "Lightweight and highly configurable media player based on MPlayer and FFmpeg"
+imagemagick = "Command-line image manipulation suite for converting, resizing, and compositing"
+yt-dlp = "Feature-rich command-line downloader for YouTube and hundreds of other sites"
+sox = "Command-line audio processing tool for converting, recording, and applying effects"
+gimp = "Full-featured raster image editor for photo retouching and graphic design"
+inkscape = "Professional vector graphics editor for SVG illustration and design work"
+
+[hooks]
+post_install = ["echo 'Multimedia tools installed. Use ffmpeg -i input output for quick conversions.'"]

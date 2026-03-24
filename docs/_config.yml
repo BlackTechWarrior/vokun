@@ -1,0 +1,21 @@
+title: Vokun
+description: Task-oriented package bundle manager for Arch Linux
+remote_theme: just-the-docs/just-the-docs
+
+url: "https://blacktechwarrior.github.io"
+baseurl: "/vokun"
+
+aux_links:
+  "GitHub":
+    - "https://github.com/blacktechwarrior/vokun"
+
+nav_order: 1
+
+color_scheme: dark
+
+search_enabled: true
+
+footer_content: "Vokun is released under the MIT License."
+
+back_to_top: true
+back_to_top_text: "Back to top"

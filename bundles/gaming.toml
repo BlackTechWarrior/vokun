@@ -1,0 +1,18 @@
+[meta]
+name = "Gaming"
+description = "Game launchers, compatibility layers, and performance tools for Linux gaming"
+tags = ["gaming", "fun"]
+version = "1.0.0"
+
+[packages]
+steam = "Valve's digital game distribution platform and launcher for Linux"
+lutris = "Open-source game manager for installing and running games from multiple sources"
+wine = "Compatibility layer for running Windows applications and games on Linux"
+gamemode = "Daemon that optimizes system performance on demand for gaming sessions"
+mangohud = "Vulkan and OpenGL overlay for monitoring FPS, CPU, GPU, and memory usage in games"
+
+[packages.aur]
+proton-ge-custom-bin = "Community-built Proton with extra patches for better game compatibility in Steam"
+
+[hooks]
+post_install = ["echo 'Gaming tools installed. Enable Steam Play in Steam settings to use Proton for Windows games.'"]

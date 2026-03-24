@@ -1,0 +1,15 @@
+[meta]
+name = "LaTeX & Academic Writing"
+description = "TeX typesetting system, bibliography tools, and document converters for academic work"
+tags = ["writing", "academic"]
+version = "1.0.0"
+
+[packages]
+texlive-basic = "Core TeX Live distribution with essential LaTeX engines and formats"
+texlive-latexextra = "Large collection of additional LaTeX packages for extended functionality"
+biber = "Unicode-capable bibliography processor for BibLaTeX citations and references"
+texlab = "Language server for LaTeX providing completion, diagnostics, and cross-references"
+pandoc = "Universal document converter between Markdown, LaTeX, HTML, DOCX, and more"
+
+[hooks]
+post_install = ["echo 'LaTeX environment installed. Use pdflatex or latexmk to compile documents.'"]

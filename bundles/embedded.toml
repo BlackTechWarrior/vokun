@@ -1,0 +1,17 @@
+[meta]
+name = "Embedded Development"
+description = "Cross-compilers, debuggers, and serial tools for embedded and ARM development"
+tags = ["dev", "embedded", "hardware"]
+version = "1.0.0"
+
+[packages]
+openocd = "On-chip debugger providing JTAG/SWD programming and debug access to microcontrollers"
+minicom = "Text-based serial port terminal emulator for communicating with embedded devices"
+picocom = "Minimal serial terminal program that is lightweight and easy to use"
+screen = "Terminal multiplexer that also works as a serial console for hardware debugging"
+arm-none-eabi-gcc = "GCC cross-compiler targeting bare-metal ARM Cortex-M and Cortex-R processors"
+arm-none-eabi-newlib = "C standard library for bare-metal ARM targets providing libc and libm"
+arm-none-eabi-gdb = "GDB cross-debugger for debugging firmware on ARM microcontrollers"
+
+[hooks]
+post_install = ["echo 'Embedded toolchain installed. Connect via picocom /dev/ttyUSB0 -b 115200 for serial.'"]

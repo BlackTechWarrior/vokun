@@ -1,0 +1,20 @@
+[meta]
+name = "Security & Pentesting"
+description = "Offensive security and penetration testing tools for ethical hacking"
+tags = ["sec", "hacking", "pentesting"]
+version = "1.0.0"
+
+[packages]
+nmap = "Network mapper for host discovery, port scanning, and vulnerability detection"
+wireshark-cli = "Command-line packet analyzer for inspecting network traffic in detail"
+john = "John the Ripper password cracker for auditing password strength"
+hashcat = "Advanced GPU-accelerated password recovery and hash cracking tool"
+aircrack-ng = "Wireless network security suite for monitoring, attacking, and cracking Wi-Fi"
+hydra = "Fast online password brute-force tool supporting many network protocols"
+
+[packages.aur]
+metasploit = "Penetration testing framework for developing and executing exploit code"
+burpsuite = "Web application security testing proxy for intercepting and modifying HTTP traffic"
+
+[hooks]
+post_install = ["echo 'Security tools installed. Use responsibly and only on systems you have permission to test.'"]

@@ -1,0 +1,17 @@
+[meta]
+name = "FPGA Development"
+description = "Open-source FPGA synthesis, simulation, and place-and-route tools"
+tags = ["dev", "fpga", "hardware"]
+version = "1.0.0"
+
+[packages]
+iverilog = "Icarus Verilog compiler and simulator for Verilog HDL design verification"
+gtkwave = "Waveform viewer for analyzing VCD and other signal dump files from simulations"
+verilator = "Fast Verilog/SystemVerilog simulator that compiles HDL to C++ for high-speed simulation"
+yosys = "Open-source RTL synthesis framework for converting Verilog to gate-level netlists"
+
+[packages.aur]
+nextpnr-ice40 = "Place-and-route tool for Lattice iCE40 FPGAs using the open-source Project IceStorm flow"
+
+[hooks]
+post_install = ["echo 'FPGA toolchain installed. Use yosys for synthesis, nextpnr for place-and-route, and iverilog for simulation.'"]

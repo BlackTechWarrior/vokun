@@ -1,0 +1,115 @@
+#!/usr/bin/env bash
+# vokun - Package Bundle Manager for Arch Linux
+# https://github.com/blacktechwarrior/vokun
+set -euo pipefail
+
+VOKUN_VERSION="0.1.0"
+
+# --- Path detection ---
+
+# Find where vokun's files live
+# Priority: /usr/share/vokun (installed) > script directory (development)
+VOKUN_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+if [[ -d "/usr/share/vokun/lib" ]]; then
+    VOKUN_LIB_DIR="/usr/share/vokun/lib"
+elif [[ -d "${VOKUN_SCRIPT_DIR}/lib" ]]; then
+    VOKUN_LIB_DIR="${VOKUN_SCRIPT_DIR}/lib"
+else
+    echo "Error: Cannot find vokun lib directory" >&2
+    exit 1
+fi
+
+if [[ -d "/usr/share/vokun/bundles" ]]; then
+    VOKUN_SYSTEM_BUNDLE_DIR="/usr/share/vokun/bundles"
+elif [[ -d "${VOKUN_SCRIPT_DIR}/bundles" ]]; then
+    VOKUN_SYSTEM_BUNDLE_DIR="${VOKUN_SCRIPT_DIR}/bundles"
+else
+    VOKUN_SYSTEM_BUNDLE_DIR=""
+fi
+
+VOKUN_CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/vokun"
+
+# --- Parse global flags ---
+
+VOKUN_YES=false
+VOKUN_NO_COLOR=false
+
+declare -a ARGS=()
+for arg in "$@"; do
+    case "$arg" in
+        --yes|-y)
+            VOKUN_YES=true
+            ;;
+        --no-color)
+            VOKUN_NO_COLOR=true
+            ;;
+        --version|-v)
+            echo "vokun $VOKUN_VERSION"
+            exit 0
+            ;;
+        --help|-h)
+            # Will be handled by dispatch below
+            ARGS+=("help")
+            ;;
+        *)
+            ARGS+=("$arg")
+            ;;
+    esac
+done
+
+# Export for subshells
+export VOKUN_VERSION VOKUN_LIB_DIR VOKUN_SYSTEM_BUNDLE_DIR VOKUN_CONFIG_DIR
+export VOKUN_YES VOKUN_NO_COLOR
+
+# --- Source libraries ---
+# shellcheck source=lib/toml.sh
+source "${VOKUN_LIB_DIR}/toml.sh"
+# shellcheck source=lib/core.sh
+source "${VOKUN_LIB_DIR}/core.sh"
+# shellcheck source=lib/state.sh
+source "${VOKUN_LIB_DIR}/state.sh"
+# shellcheck source=lib/bundles.sh
+source "${VOKUN_LIB_DIR}/bundles.sh"
+# shellcheck source=lib/aliases.sh
+source "${VOKUN_LIB_DIR}/aliases.sh"
+
+# --- Initialize ---
+vokun::core::init
+vokun::state::init
+
+# --- Dispatch ---
+command="${ARGS[0]:-help}"
+# Remove first arg (the command) from ARGS
+ARGS=("${ARGS[@]:1}")
+
+case "$command" in
+    # Bundle commands
+    install)    vokun::bundles::install "${ARGS[@]}" ;;
+    remove)     vokun::bundles::remove "${ARGS[@]}" ;;
+    list)       vokun::bundles::list "${ARGS[@]}" ;;
+    info)       vokun::bundles::info "${ARGS[@]}" ;;
+    search)     vokun::bundles::search "${ARGS[@]}" ;;
+
+    # Package aliases
+    get)        vokun::aliases::get "${ARGS[@]}" ;;
+    yeet)       vokun::aliases::yeet "${ARGS[@]}" ;;
+    find)       vokun::aliases::find "${ARGS[@]}" ;;
+    which)      vokun::aliases::which "${ARGS[@]}" ;;
+    owns)       vokun::aliases::owns "${ARGS[@]}" ;;
+    update)     vokun::aliases::update "${ARGS[@]}" ;;
+
+    # Maintenance
+    orphans)    vokun::aliases::orphans "${ARGS[@]}" ;;
+    cache)      vokun::aliases::cache "${ARGS[@]}" ;;
+    size)       vokun::aliases::size "${ARGS[@]}" ;;
+    recent)     vokun::aliases::recent "${ARGS[@]}" ;;
+    foreign)    vokun::aliases::foreign "${ARGS[@]}" ;;
+    explicit)   vokun::aliases::explicit "${ARGS[@]}" ;;
+
+    # Help
+    help)       vokun::core::help "${ARGS[@]}" ;;
+
+    # Unknown
+    *)          vokun::core::unknown "$command" ;;
+esac

@@ -1,0 +1,16 @@
+[meta]
+name = "Rust Development"
+description = "Rust toolchain manager and essential cargo extensions for Rust development"
+tags = ["dev", "rust", "systems"]
+version = "1.0.0"
+
+[packages]
+rustup = "Rust toolchain installer and version manager for stable, beta, and nightly channels"
+
+[packages.aur]
+cargo-watch = "Watches source files and re-runs cargo commands on changes for rapid iteration"
+cargo-edit = "Adds cargo add, rm, and upgrade commands for managing Cargo.toml dependencies"
+sccache = "Shared compilation cache that supports Rust, C, and C++ for faster builds"
+
+[hooks]
+post_install = ["echo 'Run rustup default stable to install the stable Rust toolchain.'"]

@@ -1,0 +1,16 @@
+[meta]
+name = "VMs & Containers"
+description = "Container runtimes, virtual machine managers, and infrastructure provisioning tools"
+tags = ["devops", "infra"]
+version = "1.0.0"
+
+[packages]
+docker = "Container runtime and CLI for building, shipping, and running containerized applications"
+podman = "Daemonless container engine compatible with Docker that runs rootless by default"
+qemu-full = "Full-system emulator and virtualizer supporting many CPU architectures"
+virt-manager = "Desktop GUI for managing QEMU/KVM virtual machines via libvirt"
+vagrant = "Tool for building and managing reproducible virtual machine environments"
+libvirt = "Virtualization API and daemon for managing QEMU, KVM, and other hypervisors"
+
+[hooks]
+post_install = ["echo 'VM/container tools installed. Enable docker.service or libvirtd.service as needed.'"]

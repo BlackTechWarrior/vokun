@@ -1,0 +1,13 @@
+[meta]
+name = "Java Development"
+description = "Java Development Kit and build tools for JVM-based development"
+tags = ["dev", "java"]
+version = "1.0.0"
+
+[packages]
+jdk-openjdk = "OpenJDK Java Development Kit for compiling and running Java applications"
+maven = "Project management and build automation tool using declarative POM files"
+gradle = "Flexible build automation tool with Groovy/Kotlin DSL for JVM projects"
+
+[hooks]
+post_install = ["echo 'Java dev tools installed. Use archlinux-java to manage installed JDK versions.'"]

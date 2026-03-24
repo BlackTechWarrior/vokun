@@ -1,0 +1,17 @@
+[meta]
+name = "Fonts Collection"
+description = "Programming fonts and international font families for a polished desktop experience"
+tags = ["desktop", "appearance"]
+version = "1.0.0"
+
+[packages]
+ttf-fira-code = "Monospaced font with programming ligatures for a cleaner code reading experience"
+noto-fonts = "Google Noto font family providing broad Unicode coverage for international text"
+noto-fonts-emoji = "Color emoji font from Google for displaying emoji across all applications"
+ttf-jetbrains-mono = "Monospaced typeface designed for developers with increased letter height and ligatures"
+
+[packages.aur]
+ttf-meslo-nerd = "Meslo font patched with Nerd Font icons for terminal prompts and powerline glyphs"
+
+[hooks]
+post_install = ["echo 'Fonts installed. Run fc-cache -fv to rebuild the font cache.'"]

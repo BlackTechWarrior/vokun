@@ -1,0 +1,16 @@
+[meta]
+name = "Web Development"
+description = "JavaScript and TypeScript runtimes and package managers for web development"
+tags = ["dev", "web", "js"]
+version = "1.0.0"
+
+[packages]
+nodejs = "JavaScript runtime built on V8 for server-side and tooling applications"
+npm = "Node.js package manager for installing JavaScript libraries and tools"
+
+[packages.aur]
+bun-bin = "All-in-one JavaScript runtime, bundler, and package manager focused on speed"
+deno = "Secure JavaScript and TypeScript runtime with built-in tooling and web APIs"
+
+[hooks]
+post_install = ["echo 'Web dev runtimes installed. Use npm init or bun init to start a new project.'"]

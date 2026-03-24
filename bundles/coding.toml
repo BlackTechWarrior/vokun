@@ -1,0 +1,25 @@
+[meta]
+name = "Core Development Tools"
+description = "Essential compilers, debuggers, and development utilities for any programmer"
+tags = ["dev", "essentials"]
+version = "1.0.0"
+
+[packages]
+git = "Distributed version control system, the backbone of modern software development"
+base-devel = "Meta package with make, gcc, and other build essentials needed to compile software"
+cmake = "Cross-platform build system generator for C/C++ and other languages"
+gdb = "GNU debugger for stepping through code and diagnosing crashes"
+valgrind = "Memory error detector and profiler for finding leaks and undefined behavior"
+strace = "Trace system calls and signals to debug program interactions with the kernel"
+ltrace = "Trace library calls to understand how a program uses shared libraries"
+man-db = "Manual page viewer and database utilities for reading documentation"
+man-pages = "Linux kernel and C library man pages for POSIX and system call reference"
+tldr = "Simplified, community-driven man pages with practical usage examples"
+
+[packages.optional]
+bear = "Build intercept tool that generates compile_commands.json for IDE integration"
+ccache = "Compiler cache that dramatically speeds up recompilation of C/C++ code"
+clang = "LLVM-based C/C++ compiler with excellent diagnostics and static analysis"
+
+[hooks]
+post_install = ["echo 'Core dev tools installed. Run git config --global user.name and user.email to set up git.'"]

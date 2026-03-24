@@ -1,0 +1,21 @@
+[meta]
+name = "C/C++ Development"
+description = "Compilers, debuggers, and static analysis tools for C and C++ development"
+tags = ["dev", "c", "cpp", "systems"]
+version = "1.0.0"
+
+[packages]
+gcc = "GNU Compiler Collection for compiling C, C++, and other languages"
+clang = "LLVM-based C/C++ compiler with excellent error messages and static analysis"
+gdb = "GNU debugger for stepping through native code and inspecting program state"
+valgrind = "Runtime memory error detector and profiler for catching leaks and UB"
+cmake = "Cross-platform build system generator widely used in C/C++ projects"
+cppcheck = "Static analysis tool that detects bugs and undefined behavior in C/C++ code"
+
+[packages.optional]
+bear = "Generates compile_commands.json by intercepting build commands for IDE tooling"
+ccache = "Compiler cache that avoids redundant recompilation to speed up builds"
+extra/clang = "Additional clang-based tools including clang-tidy and clang-format"
+
+[hooks]
+post_install = ["echo 'C/C++ toolchain installed. Use cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON for IDE integration.'"]

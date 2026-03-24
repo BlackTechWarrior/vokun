@@ -1,0 +1,509 @@
+#!/usr/bin/env bash
+# vokun - Core utilities
+# Logging, config, AUR helper detection, help system
+
+# --- Color setup ---
+
+declare -g VOKUN_COLOR_RED=""
+declare -g VOKUN_COLOR_GREEN=""
+declare -g VOKUN_COLOR_YELLOW=""
+declare -g VOKUN_COLOR_BLUE=""
+declare -g VOKUN_COLOR_MAGENTA=""
+declare -g VOKUN_COLOR_CYAN=""
+declare -g VOKUN_COLOR_BOLD=""
+declare -g VOKUN_COLOR_DIM=""
+declare -g VOKUN_COLOR_RESET=""
+
+vokun::core::setup_colors() {
+    # Respect NO_COLOR (https://no-color.org/) and --no-color flag
+    if [[ -z "${NO_COLOR:-}" && "${VOKUN_NO_COLOR:-}" != "true" ]]; then
+        VOKUN_COLOR_RED=$'\033[0;31m'
+        VOKUN_COLOR_GREEN=$'\033[0;32m'
+        VOKUN_COLOR_YELLOW=$'\033[1;33m'
+        VOKUN_COLOR_BLUE=$'\033[0;34m'
+        VOKUN_COLOR_MAGENTA=$'\033[0;35m'
+        VOKUN_COLOR_CYAN=$'\033[0;36m'
+        VOKUN_COLOR_BOLD=$'\033[1m'
+        VOKUN_COLOR_DIM=$'\033[2m'
+        VOKUN_COLOR_RESET=$'\033[0m'
+    fi
+}
+
+# --- Logging ---
+
+vokun::core::log() {
+    printf '%s\n' "$*"
+}
+
+vokun::core::info() {
+    printf '%s::%s %s%s\n' "$VOKUN_COLOR_BLUE" "$VOKUN_COLOR_RESET" "$VOKUN_COLOR_BOLD$*" "$VOKUN_COLOR_RESET"
+}
+
+vokun::core::success() {
+    printf '%s::%s %s%s\n' "$VOKUN_COLOR_GREEN" "$VOKUN_COLOR_RESET" "$*" "$VOKUN_COLOR_RESET"
+}
+
+vokun::core::warn() {
+    printf '%s:: WARNING:%s %s%s\n' "$VOKUN_COLOR_YELLOW" "$VOKUN_COLOR_RESET" "$*" "$VOKUN_COLOR_RESET" >&2
+}
+
+vokun::core::error() {
+    printf '%s:: ERROR:%s %s%s\n' "$VOKUN_COLOR_RED" "$VOKUN_COLOR_RESET" "$*" "$VOKUN_COLOR_RESET" >&2
+}
+
+vokun::core::dim() {
+    printf '%s%s%s' "$VOKUN_COLOR_DIM" "$*" "$VOKUN_COLOR_RESET"
+}
+
+# Print the underlying command being run (transparency)
+vokun::core::show_cmd() {
+    printf '%s=> %s%s\n' "$VOKUN_COLOR_DIM" "$*" "$VOKUN_COLOR_RESET"
+}
+
+# --- Confirmation ---
+
+# Prompt user for confirmation
+# Returns 0 if confirmed, 1 if declined
+# Skipped if --yes flag is set
+vokun::core::confirm() {
+    local prompt="${1:-Continue?}"
+
+    if [[ "${VOKUN_YES:-false}" == "true" ]]; then
+        return 0
+    fi
+
+    printf '%s [Y/n] ' "$prompt"
+    local reply
+    read -r reply
+    case "$reply" in
+        [nN]|[nN][oO]) return 1 ;;
+        *) return 0 ;;
+    esac
+}
+
+# --- AUR helper detection ---
+
+vokun::core::detect_aur_helper() {
+    if command -v paru &>/dev/null; then
+        printf 'paru'
+    elif command -v yay &>/dev/null; then
+        printf 'yay'
+    else
+        printf ''
+    fi
+}
+
+# Get the configured or detected AUR helper
+vokun::core::get_aur_helper() {
+    # Check config first
+    if [[ -n "${VOKUN_AUR_HELPER:-}" ]]; then
+        printf '%s' "$VOKUN_AUR_HELPER"
+        return
+    fi
+
+    # Auto-detect
+    vokun::core::detect_aur_helper
+}
+
+# --- Pacman wrapper ---
+
+# Run a pacman command with transparency
+# Automatically uses sudo for operations that need root
+# Usage: vokun::core::run_pacman -S package1 package2
+#        vokun::core::run_pacman -Ss query
+vokun::core::run_pacman() {
+    local flags="$1"
+    shift
+
+    local cmd="pacman"
+    local needs_sudo=false
+
+    # Determine if we need sudo based on the operation
+    case "$flags" in
+        -S|-S[^s]*|-R*|-U|-Syu|-Syyu|-Sy)
+            needs_sudo=true
+            ;;
+    esac
+
+    # Use AUR helper if available (it handles sudo internally)
+    local aur_helper
+    aur_helper=$(vokun::core::get_aur_helper)
+    if [[ -n "$aur_helper" ]]; then
+        cmd="$aur_helper"
+        needs_sudo=false  # AUR helpers handle sudo themselves
+    fi
+
+    if [[ "$needs_sudo" == true ]]; then
+        vokun::core::show_cmd "sudo $cmd $flags $*"
+        sudo "$cmd" "$flags" "$@"
+    else
+        vokun::core::show_cmd "$cmd $flags $*"
+        "$cmd" "$flags" "$@"
+    fi
+}
+
+# Run pacman specifically (not AUR helper) — for operations that must use pacman
+vokun::core::run_pacman_only() {
+    local flags="$1"
+    shift
+
+    local needs_sudo=false
+    case "$flags" in
+        -S|-S[^s]*|-R*|-U|-Syu|-Syyu|-Sy)
+            needs_sudo=true
+            ;;
+    esac
+
+    if [[ "$needs_sudo" == true ]]; then
+        vokun::core::show_cmd "sudo pacman $flags $*"
+        sudo pacman "$flags" "$@"
+    else
+        vokun::core::show_cmd "pacman $flags $*"
+        pacman "$flags" "$@"
+    fi
+}
+
+# --- Config loading ---
+
+vokun::core::load_config() {
+    local config_file="${VOKUN_CONFIG_DIR}/vokun.conf"
+
+    # Set defaults
+    VOKUN_AUR_HELPER=$(vokun::core::detect_aur_helper)
+    VOKUN_CONFIRM=true
+    VOKUN_FZF=true
+    VOKUN_SYNC_AUTO_PROMPT=true
+    VOKUN_AUR_TRUST_THRESHOLD=50
+    VOKUN_AUR_WARN_AGE_DAYS=180
+
+    if [[ -f "$config_file" ]]; then
+        vokun::toml::parse "$config_file"
+
+        # Apply config values
+        local val
+        val=$(vokun::toml::get "general.aur_helper")
+        [[ -n "$val" ]] && VOKUN_AUR_HELPER="$val"
+        val=$(vokun::toml::get "general.confirm")
+        [[ -n "$val" ]] && VOKUN_CONFIRM="$val"
+        val=$(vokun::toml::get "general.fzf")
+        [[ -n "$val" ]] && VOKUN_FZF="$val"
+        val=$(vokun::toml::get "sync.auto_prompt")
+        [[ -n "$val" ]] && VOKUN_SYNC_AUTO_PROMPT="$val"
+        val=$(vokun::toml::get "aur.trust_threshold")
+        [[ -n "$val" ]] && VOKUN_AUR_TRUST_THRESHOLD="$val"
+        val=$(vokun::toml::get "aur.warn_age_days")
+        [[ -n "$val" ]] && VOKUN_AUR_WARN_AGE_DAYS="$val"
+    fi
+}
+
+# --- Init ---
+
+vokun::core::init() {
+    vokun::core::setup_colors
+
+    # Create config directory if needed
+    mkdir -p "${VOKUN_CONFIG_DIR}"
+    mkdir -p "${VOKUN_CONFIG_DIR}/bundles/custom"
+
+    # Load config
+    vokun::core::load_config
+
+    # Check for jq (soft dependency)
+    if ! command -v jq &>/dev/null; then
+        vokun::core::warn "jq is not installed. State tracking will be limited."
+        vokun::core::warn "Install it with: sudo pacman -S jq"
+    fi
+}
+
+# --- Help system ---
+
+vokun::core::help() {
+    local command="${1:-}"
+
+    if [[ -z "$command" ]]; then
+        vokun::core::help_main
+    else
+        vokun::core::help_command "$command"
+    fi
+}
+
+vokun::core::help_main() {
+    cat <<EOF
+${VOKUN_COLOR_BOLD}vokun${VOKUN_COLOR_RESET} - Package Bundle Manager for Arch Linux ${VOKUN_COLOR_DIM}(v${VOKUN_VERSION})${VOKUN_COLOR_RESET}
+
+${VOKUN_COLOR_BOLD}USAGE${VOKUN_COLOR_RESET}
+    vokun <command> [options]
+
+${VOKUN_COLOR_BOLD}BUNDLE COMMANDS${VOKUN_COLOR_RESET}
+    ${VOKUN_COLOR_GREEN}install${VOKUN_COLOR_RESET} <bundle>         Install a package bundle
+    ${VOKUN_COLOR_GREEN}remove${VOKUN_COLOR_RESET}  <bundle>         Remove a bundle's unique packages
+    ${VOKUN_COLOR_GREEN}list${VOKUN_COLOR_RESET}                     List available bundles
+    ${VOKUN_COLOR_GREEN}info${VOKUN_COLOR_RESET}    <bundle>         Show bundle details
+    ${VOKUN_COLOR_GREEN}search${VOKUN_COLOR_RESET}  <keyword>        Search bundles by name, tag, or package
+
+${VOKUN_COLOR_BOLD}PACKAGE COMMANDS${VOKUN_COLOR_RESET}
+    ${VOKUN_COLOR_CYAN}get${VOKUN_COLOR_RESET}     <pkg>            Install a package ${VOKUN_COLOR_DIM}(pacman -S)${VOKUN_COLOR_RESET}
+    ${VOKUN_COLOR_CYAN}yeet${VOKUN_COLOR_RESET}    <pkg>            Remove a package ${VOKUN_COLOR_DIM}(pacman -Rns)${VOKUN_COLOR_RESET}
+    ${VOKUN_COLOR_CYAN}find${VOKUN_COLOR_RESET}    <query>          Search for packages ${VOKUN_COLOR_DIM}(pacman -Ss)${VOKUN_COLOR_RESET}
+    ${VOKUN_COLOR_CYAN}which${VOKUN_COLOR_RESET}   <pkg>            Show package info ${VOKUN_COLOR_DIM}(pacman -Qi)${VOKUN_COLOR_RESET}
+    ${VOKUN_COLOR_CYAN}owns${VOKUN_COLOR_RESET}    <file>           Find which package owns a file ${VOKUN_COLOR_DIM}(pacman -Qo)${VOKUN_COLOR_RESET}
+    ${VOKUN_COLOR_CYAN}update${VOKUN_COLOR_RESET}                   Full system update ${VOKUN_COLOR_DIM}(pacman -Syu)${VOKUN_COLOR_RESET}
+
+${VOKUN_COLOR_BOLD}MAINTENANCE${VOKUN_COLOR_RESET}
+    ${VOKUN_COLOR_YELLOW}orphans${VOKUN_COLOR_RESET}                  List orphaned packages
+    ${VOKUN_COLOR_YELLOW}cache${VOKUN_COLOR_RESET}                    Manage package cache
+    ${VOKUN_COLOR_YELLOW}size${VOKUN_COLOR_RESET}                     List packages by installed size
+    ${VOKUN_COLOR_YELLOW}recent${VOKUN_COLOR_RESET}                   Show recently installed packages
+    ${VOKUN_COLOR_YELLOW}foreign${VOKUN_COLOR_RESET}                  List AUR/foreign packages
+    ${VOKUN_COLOR_YELLOW}explicit${VOKUN_COLOR_RESET}                 List explicitly installed packages
+
+${VOKUN_COLOR_BOLD}OPTIONS${VOKUN_COLOR_RESET}
+    --yes, -y                Skip confirmation prompts
+    --no-color               Disable colored output
+    --help, -h               Show this help
+    --version, -v            Show version
+
+Run ${VOKUN_COLOR_BOLD}vokun help <command>${VOKUN_COLOR_RESET} for details on a specific command.
+EOF
+}
+
+vokun::core::help_command() {
+    local cmd="$1"
+    case "$cmd" in
+        install)
+            cat <<EOF
+${VOKUN_COLOR_BOLD}vokun install${VOKUN_COLOR_RESET} <bundle> [--yes]
+
+Install all packages from a bundle. Shows each package with its description,
+highlights AUR packages, and shows optional packages separately.
+
+${VOKUN_COLOR_BOLD}Examples:${VOKUN_COLOR_RESET}
+    vokun install coding          # Install core coding tools
+    vokun install python-dev -y   # Install Python dev tools, skip confirmation
+
+${VOKUN_COLOR_BOLD}Flags:${VOKUN_COLOR_RESET}
+    --yes, -y    Skip confirmation prompt
+EOF
+            ;;
+        remove)
+            cat <<EOF
+${VOKUN_COLOR_BOLD}vokun remove${VOKUN_COLOR_RESET} <bundle>
+
+Remove packages that are unique to a bundle (not shared with other installed bundles).
+Shared packages are kept and listed.
+
+${VOKUN_COLOR_BOLD}Examples:${VOKUN_COLOR_RESET}
+    vokun remove gaming
+EOF
+            ;;
+        list)
+            cat <<EOF
+${VOKUN_COLOR_BOLD}vokun list${VOKUN_COLOR_RESET} [--installed]
+
+List all available bundles, grouped by tags. Installed bundles are highlighted.
+
+${VOKUN_COLOR_BOLD}Flags:${VOKUN_COLOR_RESET}
+    --installed    Show only installed bundles
+EOF
+            ;;
+        info)
+            cat <<EOF
+${VOKUN_COLOR_BOLD}vokun info${VOKUN_COLOR_RESET} <bundle>
+
+Show detailed information about a bundle: description, tags, and all packages
+with their descriptions and current install status.
+
+${VOKUN_COLOR_BOLD}Examples:${VOKUN_COLOR_RESET}
+    vokun info sysadmin
+EOF
+            ;;
+        search)
+            cat <<EOF
+${VOKUN_COLOR_BOLD}vokun search${VOKUN_COLOR_RESET} <keyword>
+
+Search across all bundles by name, description, tags, and package names.
+
+${VOKUN_COLOR_BOLD}Examples:${VOKUN_COLOR_RESET}
+    vokun search python
+    vokun search gaming
+EOF
+            ;;
+        get)
+            cat <<EOF
+${VOKUN_COLOR_BOLD}vokun get${VOKUN_COLOR_RESET} <package> [package...]
+
+Install one or more packages. Uses paru/yay if available, otherwise pacman.
+After installing, prompts to add the package to a bundle.
+
+${VOKUN_COLOR_DIM}Equivalent to: sudo pacman -S <package>${VOKUN_COLOR_RESET}
+
+${VOKUN_COLOR_BOLD}Examples:${VOKUN_COLOR_RESET}
+    vokun get neovim
+    vokun get firefox chromium
+EOF
+            ;;
+        yeet)
+            cat <<EOF
+${VOKUN_COLOR_BOLD}vokun yeet${VOKUN_COLOR_RESET} <package> [package...]
+
+Remove packages along with their unneeded dependencies and config files.
+Warns if the package belongs to an installed bundle.
+
+${VOKUN_COLOR_DIM}Equivalent to: sudo pacman -Rns <package>${VOKUN_COLOR_RESET}
+
+${VOKUN_COLOR_BOLD}Examples:${VOKUN_COLOR_RESET}
+    vokun yeet firefox
+EOF
+            ;;
+        find)
+            cat <<EOF
+${VOKUN_COLOR_BOLD}vokun find${VOKUN_COLOR_RESET} <query> [--aur]
+
+Search for packages in the repositories (and optionally AUR).
+
+${VOKUN_COLOR_DIM}Equivalent to: pacman -Ss <query>${VOKUN_COLOR_RESET}
+
+${VOKUN_COLOR_BOLD}Flags:${VOKUN_COLOR_RESET}
+    --aur    Include AUR results (requires paru/yay)
+
+${VOKUN_COLOR_BOLD}Examples:${VOKUN_COLOR_RESET}
+    vokun find terminal
+    vokun find --aur spotify
+EOF
+            ;;
+        which)
+            cat <<EOF
+${VOKUN_COLOR_BOLD}vokun which${VOKUN_COLOR_RESET} <package>
+
+Show detailed information about an installed package.
+
+${VOKUN_COLOR_DIM}Equivalent to: pacman -Qi <package>${VOKUN_COLOR_RESET}
+EOF
+            ;;
+        owns)
+            cat <<EOF
+${VOKUN_COLOR_BOLD}vokun owns${VOKUN_COLOR_RESET} <file>
+
+Find which package owns a file on your system.
+
+${VOKUN_COLOR_DIM}Equivalent to: pacman -Qo <file>${VOKUN_COLOR_RESET}
+
+${VOKUN_COLOR_BOLD}Examples:${VOKUN_COLOR_RESET}
+    vokun owns /usr/bin/git
+EOF
+            ;;
+        update)
+            cat <<EOF
+${VOKUN_COLOR_BOLD}vokun update${VOKUN_COLOR_RESET} [--aur]
+
+Perform a full system update. Syncs repos and upgrades all packages.
+
+${VOKUN_COLOR_DIM}Equivalent to: sudo pacman -Syu${VOKUN_COLOR_RESET}
+
+${VOKUN_COLOR_BOLD}Flags:${VOKUN_COLOR_RESET}
+    --aur    Also update AUR packages (requires paru/yay)
+EOF
+            ;;
+        orphans)
+            cat <<EOF
+${VOKUN_COLOR_BOLD}vokun orphans${VOKUN_COLOR_RESET} [--clean]
+
+List packages that were installed as dependencies but are no longer required.
+
+${VOKUN_COLOR_DIM}Equivalent to: pacman -Qdt${VOKUN_COLOR_RESET}
+
+${VOKUN_COLOR_BOLD}Flags:${VOKUN_COLOR_RESET}
+    --clean    Remove all orphaned packages
+EOF
+            ;;
+        cache)
+            cat <<EOF
+${VOKUN_COLOR_BOLD}vokun cache${VOKUN_COLOR_RESET} [--clean|--purge]
+
+Show package cache statistics.
+
+${VOKUN_COLOR_BOLD}Flags:${VOKUN_COLOR_RESET}
+    --clean    Keep only the last 2 versions of each package
+    --purge    Remove all cached packages
+
+${VOKUN_COLOR_DIM}Uses: paccache from pacman-contrib${VOKUN_COLOR_RESET}
+EOF
+            ;;
+        size)
+            cat <<EOF
+${VOKUN_COLOR_BOLD}vokun size${VOKUN_COLOR_RESET} [--top N]
+
+List installed packages sorted by size (largest first).
+
+${VOKUN_COLOR_BOLD}Flags:${VOKUN_COLOR_RESET}
+    --top N    Show only the top N packages (default: 20)
+EOF
+            ;;
+        recent)
+            cat <<EOF
+${VOKUN_COLOR_BOLD}vokun recent${VOKUN_COLOR_RESET} [--count N]
+
+Show recently installed packages from the pacman log.
+
+${VOKUN_COLOR_BOLD}Flags:${VOKUN_COLOR_RESET}
+    --count N    Number of entries to show (default: 20)
+EOF
+            ;;
+        foreign)
+            cat <<EOF
+${VOKUN_COLOR_BOLD}vokun foreign${VOKUN_COLOR_RESET}
+
+List all packages not found in the sync databases (typically AUR packages).
+
+${VOKUN_COLOR_DIM}Equivalent to: pacman -Qm${VOKUN_COLOR_RESET}
+EOF
+            ;;
+        explicit)
+            cat <<EOF
+${VOKUN_COLOR_BOLD}vokun explicit${VOKUN_COLOR_RESET}
+
+List all explicitly installed packages (not pulled in as dependencies).
+
+${VOKUN_COLOR_DIM}Equivalent to: pacman -Qe${VOKUN_COLOR_RESET}
+EOF
+            ;;
+        *)
+            vokun::core::error "Unknown command: $cmd"
+            vokun::core::log "Run 'vokun help' for a list of commands."
+            return 1
+            ;;
+    esac
+}
+
+# --- Utilities ---
+
+vokun::core::unknown() {
+    local cmd="$1"
+    vokun::core::error "Unknown command: $cmd"
+    vokun::core::log ""
+    vokun::core::log "Available commands:"
+    vokun::core::log "  install, remove, list, info, search"
+    vokun::core::log "  get, yeet, find, which, owns, update"
+    vokun::core::log "  orphans, cache, size, recent, foreign, explicit"
+    vokun::core::log ""
+    vokun::core::log "Run 'vokun help' for more information."
+    return 1
+}
+
+# Check if a value is in an array
+# Usage: vokun::core::in_array "value" "${array[@]}"
+vokun::core::in_array() {
+    local needle="$1"
+    shift
+    local item
+    for item in "$@"; do
+        [[ "$item" == "$needle" ]] && return 0
+    done
+    return 1
+}
+
+# Check if a package is installed
+vokun::core::is_pkg_installed() {
+    local pkg="$1"
+    pacman -Qi "$pkg" &>/dev/null
+}

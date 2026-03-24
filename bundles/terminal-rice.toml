@@ -1,0 +1,18 @@
+[meta]
+name = "Terminal Customization"
+description = "Shell frameworks, prompt themes, and terminal tools for a beautiful CLI setup"
+tags = ["desktop", "rice", "terminal"]
+version = "1.0.0"
+
+[packages]
+starship = "Cross-shell prompt with smart context display for git, languages, and cloud environments"
+tmux = "Terminal multiplexer for splitting panes, managing sessions, and persisting work"
+zsh = "Powerful interactive shell with advanced completion, globbing, and scripting features"
+neovim = "Hyperextensible Vim-based text editor with Lua plugin ecosystem and LSP support"
+alacritty = "GPU-accelerated terminal emulator focused on simplicity and performance"
+
+[packages.aur]
+oh-my-zsh-git = "Community-driven framework for managing Zsh configuration with plugins and themes"
+
+[hooks]
+post_install = ["echo 'Terminal rice installed. Add eval \"$(starship init zsh)\" to your .zshrc for the prompt.'"]

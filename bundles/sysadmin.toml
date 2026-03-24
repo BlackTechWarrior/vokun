@@ -1,0 +1,28 @@
+[meta]
+name = "System Administration Toolkit"
+description = "Modern CLI utilities for system monitoring, file management, and productivity"
+tags = ["admin", "essentials", "cli"]
+version = "1.0.0"
+
+[packages]
+htop = "Interactive process viewer with a full-color terminal UI for system monitoring"
+btop = "Resource monitor with CPU, memory, disk, network, and process stats in a rich TUI"
+fastfetch = "Fast system information tool that displays OS, kernel, and hardware details"
+tree = "Recursive directory listing that shows folder structure in a tree format"
+fd = "Simple and fast alternative to find with intuitive syntax and colorized output"
+ripgrep = "Blazingly fast recursive text search tool that respects gitignore rules"
+bat = "Cat clone with syntax highlighting, line numbers, and git integration"
+eza = "Modern replacement for ls with colors, icons, tree view, and git status"
+dust = "Intuitive disk usage analyzer that shows directory sizes as a visual chart"
+duf = "Disk usage and free space utility with a clean tabular output"
+procs = "Modern replacement for ps with color-coded, human-readable process listing"
+jq = "Lightweight command-line JSON processor for parsing and transforming JSON data"
+fzf = "General-purpose fuzzy finder for files, history, processes, and more"
+zoxide = "Smarter cd command that learns your most-used directories for instant jumping"
+
+[packages.optional]
+sd = "Intuitive find-and-replace CLI tool, a simpler alternative to sed"
+choose = "Human-friendly alternative to cut and awk for selecting fields from output"
+
+[hooks]
+post_install = ["echo 'CLI toolkit installed. Add eval \"$(zoxide init bash)\" to your shell rc to enable zoxide.'"]

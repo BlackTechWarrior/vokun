@@ -1,0 +1,20 @@
+[meta]
+name = "Networking Tools"
+description = "Network analysis, diagnostics, and security scanning utilities"
+tags = ["net", "admin"]
+version = "1.0.0"
+
+[packages]
+nmap = "Network scanner for host discovery, port scanning, and service detection"
+wireshark-cli = "Command-line network protocol analyzer for deep packet inspection"
+traceroute = "Traces the route packets take to a remote host to diagnose routing issues"
+mtr = "Combines traceroute and ping into a single real-time network diagnostic tool"
+curl = "Versatile command-line tool for transferring data via URLs and APIs"
+wget = "Non-interactive file downloader that supports HTTP, HTTPS, and FTP"
+iperf3 = "Network bandwidth measurement tool for testing throughput between hosts"
+tcpdump = "Packet capture and analysis tool for low-level network debugging"
+socat = "Multipurpose relay tool for bidirectional data transfer between channels"
+bandwhich = "Terminal bandwidth utilization tool showing per-process network usage"
+
+[hooks]
+post_install = ["echo 'Network tools installed. tcpdump and wireshark-cli may require root or appropriate group membership.'"]

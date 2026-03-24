@@ -1,0 +1,17 @@
+[meta]
+name = "Python Development"
+description = "Python interpreter, package management, linting, and testing tools"
+tags = ["dev", "python"]
+version = "1.0.0"
+
+[packages]
+python = "CPython interpreter, the reference implementation of the Python language"
+python-pip = "Python package installer for downloading and managing PyPI packages"
+ipython = "Enhanced interactive Python shell with auto-completion and rich introspection"
+python-virtualenv = "Tool to create isolated Python environments for per-project dependencies"
+ruff = "Extremely fast Python linter and formatter written in Rust"
+mypy = "Static type checker for Python that catches type errors before runtime"
+python-pytest = "Full-featured testing framework for writing and running Python test suites"
+
+[hooks]
+post_install = ["echo 'Python dev environment ready. Use python -m venv to create virtual environments.'"]

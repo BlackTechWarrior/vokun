@@ -1,0 +1,12 @@
+[meta]
+name = "Go Development"
+description = "Go compiler and language server for Go development"
+tags = ["dev", "go"]
+version = "1.0.0"
+
+[packages]
+go = "The Go programming language compiler, tools, and standard library"
+gopls = "Official Go language server providing IDE features like completion and diagnostics"
+
+[hooks]
+post_install = ["echo 'Go installed. Set GOPATH if needed; default is ~/go. Run go mod init to start a module.'"]

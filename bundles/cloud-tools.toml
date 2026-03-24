@@ -1,0 +1,16 @@
+[meta]
+name = "Cloud & DevOps Tools"
+description = "Kubernetes management, infrastructure-as-code, and cloud CLI utilities"
+tags = ["devops", "cloud"]
+version = "1.0.0"
+
+[packages]
+kubectl = "Kubernetes command-line tool for deploying and managing containerized workloads"
+helm = "Kubernetes package manager for templating and deploying application charts"
+terraform = "Infrastructure-as-code tool for provisioning cloud resources declaratively"
+
+[packages.aur]
+aws-cli-v2 = "Official AWS command-line interface for managing Amazon Web Services resources"
+
+[hooks]
+post_install = ["echo 'Cloud tools installed. Run aws configure or kubectl config to set up credentials.'"]
