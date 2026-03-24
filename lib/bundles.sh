@@ -1051,6 +1051,16 @@ vokun::bundles::install() {
     if [[ ${#aur_packages[@]} -gt 0 && "$install_failed" == false ]]; then
         local aur_helper
         aur_helper=$(vokun::core::get_aur_helper)
+
+        # Show PKGBUILDs before AUR install if configured
+        if [[ "${VOKUN_AUR_SHOW_PKGBUILD:-false}" == "true" ]]; then
+            local aur_pkg
+            for aur_pkg in "${aur_packages[@]}"; do
+                vokun::aur::diff "$aur_pkg" 2>/dev/null || true
+                printf '\n'
+            done
+        fi
+
         vokun::core::show_cmd "$aur_helper -S --needed ${aur_packages[*]}"
         "$aur_helper" -S --needed "${aur_packages[@]}" || install_failed=true
     fi

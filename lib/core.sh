@@ -153,7 +153,7 @@ vokun::core::log_show() {
 vokun::core::confirm() {
     local prompt="${1:-Continue?}"
 
-    if [[ "${VOKUN_YES:-false}" == "true" ]]; then
+    if [[ "${VOKUN_YES:-false}" == "true" || "${VOKUN_CONFIRM:-true}" == "false" ]]; then
         return 0
     fi
 
@@ -260,6 +260,7 @@ vokun::core::load_config() {
     VOKUN_SYNC_AUTO_PROMPT=true
     VOKUN_AUR_TRUST_THRESHOLD=50
     VOKUN_AUR_WARN_AGE_DAYS=180
+    VOKUN_AUR_SHOW_PKGBUILD=false
 
     if [[ -f "$config_file" ]]; then
         vokun::toml::parse "$config_file"
@@ -274,15 +275,17 @@ vokun::core::load_config() {
         [[ -n "$val" ]] && VOKUN_FZF="$val"
         val=$(vokun::toml::get "sync.auto_prompt")
         [[ -n "$val" ]] && VOKUN_SYNC_AUTO_PROMPT="$val"
-        val=$(vokun::toml::get "general.color")
+        val=$(vokun::toml::get "general.color" "")
         if [[ "$val" == "false" ]]; then
             VOKUN_NO_COLOR=true
             vokun::core::setup_colors
         fi
-        val=$(vokun::toml::get "aur.trust_threshold")
+        val=$(vokun::toml::get "aur.trust_threshold" "")
         [[ -n "$val" ]] && VOKUN_AUR_TRUST_THRESHOLD="$val"
-        val=$(vokun::toml::get "aur.warn_age_days")
+        val=$(vokun::toml::get "aur.warn_age_days" "")
         [[ -n "$val" ]] && VOKUN_AUR_WARN_AGE_DAYS="$val"
+        val=$(vokun::toml::get "aur.show_pkgbuild" "")
+        [[ -n "$val" ]] && VOKUN_AUR_SHOW_PKGBUILD="$val"
     fi
 }
 
