@@ -267,6 +267,7 @@ ${VOKUN_COLOR_BOLD}MAINTENANCE${VOKUN_COLOR_RESET}
 
 ${VOKUN_COLOR_BOLD}AUTOMATION${VOKUN_COLOR_RESET}
     ${VOKUN_COLOR_MAGENTA}hook${VOKUN_COLOR_RESET}    <action>         Manage pacman hook ${VOKUN_COLOR_DIM}(install, remove)${VOKUN_COLOR_RESET}
+    ${VOKUN_COLOR_MAGENTA}profile${VOKUN_COLOR_RESET}  <action>         Manage profiles ${VOKUN_COLOR_DIM}(list, switch, create, delete)${VOKUN_COLOR_RESET}
     ${VOKUN_COLOR_MAGENTA}setup${VOKUN_COLOR_RESET}                    Check and install optional dependencies
     ${VOKUN_COLOR_MAGENTA}uninstall${VOKUN_COLOR_RESET}                Remove vokun from your system
 
@@ -567,6 +568,26 @@ ${VOKUN_COLOR_BOLD}Actions:${VOKUN_COLOR_RESET}
     remove     Remove the pacman hook (requires sudo)
 EOF
             ;;
+        profile)
+            cat <<EOF
+${VOKUN_COLOR_BOLD}vokun profile${VOKUN_COLOR_RESET} <action>
+
+Manage named profiles for different machines or contexts. Each profile has
+its own state file tracking which bundles are installed.
+
+${VOKUN_COLOR_BOLD}Actions:${VOKUN_COLOR_RESET}
+    show               Show active profile (default)
+    list               List all profiles
+    switch <name>      Switch to a different profile
+    create <name>      Create a new profile
+    delete <name>      Delete a profile
+
+${VOKUN_COLOR_BOLD}Examples:${VOKUN_COLOR_RESET}
+    vokun profile create workstation
+    vokun profile switch server
+    vokun profile list
+EOF
+            ;;
         setup)
             cat <<EOF
 ${VOKUN_COLOR_BOLD}vokun setup${VOKUN_COLOR_RESET}
@@ -611,7 +632,7 @@ vokun::core::unknown() {
     vokun::core::log "  export, import"
     vokun::core::log "  get, yeet, find, which, owns, update"
     vokun::core::log "  orphans, cache, size, recent, foreign, explicit"
-    vokun::core::log "  broken, check, diff, hook, setup, uninstall"
+    vokun::core::log "  broken, check, diff, hook, profile, setup, uninstall"
     vokun::core::log ""
     vokun::core::log "Run 'vokun help' for more information."
     return 1

@@ -5,7 +5,8 @@
 VOKUN_STATE_FILE=""
 
 vokun::state::init() {
-    VOKUN_STATE_FILE="${VOKUN_CONFIG_DIR}/state.json"
+    # Use the active profile's state file
+    VOKUN_STATE_FILE=$(vokun::profile::state_file)
 
     if [[ ! -f "$VOKUN_STATE_FILE" ]]; then
         vokun::state::_create_default
