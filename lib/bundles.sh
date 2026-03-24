@@ -271,6 +271,7 @@ vokun::bundles::_run_hooks() {
 # Prompt user to pick one package from a [select.*] category
 # Detects already-installed options, offers Skip.
 # Sets VOKUN_SELECT_RESULT to the chosen package name, or "" if skipped.
+# Respects VOKUN_SELECT_EXCLUDE and VOKUN_SELECT_ONLY arrays if set.
 # Usage: vokun::bundles::_prompt_select "editor" "CLI Editor"
 vokun::bundles::_prompt_select() {
     local category="$1"
@@ -291,11 +292,28 @@ vokun::bundles::_prompt_select() {
         [[ -z "$key" ]] && continue
         # Skip metadata keys
         [[ "$key" == "default" || "$key" == "label" ]] && continue
+        # Apply --exclude filter
+        if [[ -n "${VOKUN_SELECT_EXCLUDE+x}" && ${#VOKUN_SELECT_EXCLUDE[@]} -gt 0 ]] && vokun::core::in_array "$key" "${VOKUN_SELECT_EXCLUDE[@]}"; then
+            continue
+        fi
+        # Apply --only filter
+        if [[ -n "${VOKUN_SELECT_ONLY+x}" && ${#VOKUN_SELECT_ONLY[@]} -gt 0 ]] && ! vokun::core::in_array "$key" "${VOKUN_SELECT_ONLY[@]}"; then
+            continue
+        fi
         pkg_names+=("$key")
         pkg_descs+=("$(vokun::toml::get "${section}.${key}" "")")
     done <<< "$keys"
 
     if [[ ${#pkg_names[@]} -eq 0 ]]; then
+        return 0
+    fi
+
+    # If only one option after filtering, auto-select it
+    if [[ ${#pkg_names[@]} -eq 1 ]]; then
+        VOKUN_SELECT_RESULT="${pkg_names[0]}"
+        printf '\n  %s%s:%s %s%s%s (auto-selected)\n' \
+            "$VOKUN_COLOR_BOLD" "$label" "$VOKUN_COLOR_RESET" \
+            "$VOKUN_COLOR_CYAN" "${pkg_names[0]}" "$VOKUN_COLOR_RESET"
         return 0
     fi
 
@@ -855,6 +873,12 @@ vokun::bundles::install() {
     local -a select_categories
     mapfile -t select_categories < <(vokun::toml::subsections "select")
 
+    # Pass --exclude/--only filters to select prompts
+    # shellcheck disable=SC2034
+    VOKUN_SELECT_EXCLUDE=("${exclude_arr[@]}")
+    # shellcheck disable=SC2034
+    VOKUN_SELECT_ONLY=("${only_arr[@]}")
+
     if [[ ${#select_categories[@]} -gt 0 && "$dry_run" == false ]]; then
         printf '\n%s\n' "$(printf '%.0s─' {1..50})"
         vokun::core::info "Choose your preferred tools:"
@@ -1191,6 +1215,8 @@ vokun::bundles::remove() {
 # Change select-one choices for an installed bundle
 vokun::bundles::select() {
     local name="${1:-}"
+    VOKUN_SELECT_EXCLUDE=()
+    VOKUN_SELECT_ONLY=()
 
     if [[ -z "$name" ]]; then
         vokun::core::error "Usage: vokun select <bundle>"
