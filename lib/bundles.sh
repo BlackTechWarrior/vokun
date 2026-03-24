@@ -632,11 +632,15 @@ vokun::bundles::search() {
             match_reason="${match_reason:+$match_reason, }tags"
         fi
 
-        # Check package names
+        # Check package names (including select.* categories)
         local all_keys=""
         all_keys+=$(vokun::toml::keys "packages")
         all_keys+=$'\n'$(vokun::toml::keys "packages.aur")
         all_keys+=$'\n'$(vokun::toml::keys "packages.optional")
+        local _sel_cat
+        while IFS= read -r _sel_cat; do
+            [[ -n "$_sel_cat" ]] && all_keys+=$'\n'$(vokun::toml::keys "select.${_sel_cat}")
+        done < <(vokun::toml::subsections "select")
 
         if [[ "${all_keys,,}" == *"$query_lower"* ]]; then
             match=true

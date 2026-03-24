@@ -33,14 +33,21 @@ vokun::why::run() {
         local name
         name=$(vokun::bundles::name_from_path "$file")
 
-        # Check all package sections
+        # Check all package sections (including select.* categories)
         local found=false
+        local -a check_sections=("packages" "packages.aur" "packages.optional")
+        local sel_cat
+        while IFS= read -r sel_cat; do
+            [[ -n "$sel_cat" ]] && check_sections+=("select.${sel_cat}")
+        done < <(vokun::toml::subsections "select")
+
         local section
-        for section in "packages" "packages.aur" "packages.optional"; do
+        for section in "${check_sections[@]}"; do
             local keys
             keys=$(vokun::toml::keys "$section")
             [[ -z "$keys" ]] && continue
             while IFS= read -r key; do
+                [[ "$key" == "default" || "$key" == "label" ]] && continue
                 [[ "$key" == "$pkg" ]] && found=true && break
             done <<< "$keys"
             [[ "$found" == true ]] && break
@@ -141,13 +148,20 @@ vokun::why::untracked() {
 
     for file in "${bundle_files[@]}"; do
         vokun::toml::parse "$file"
+        local -a check_sections=("packages" "packages.aur" "packages.optional")
+        local sel_cat
+        while IFS= read -r sel_cat; do
+            [[ -n "$sel_cat" ]] && check_sections+=("select.${sel_cat}")
+        done < <(vokun::toml::subsections "select")
+
         local section
-        for section in "packages" "packages.aur" "packages.optional"; do
+        for section in "${check_sections[@]}"; do
             local keys
             keys=$(vokun::toml::keys "$section")
             [[ -z "$keys" ]] && continue
             while IFS= read -r key; do
-                [[ -n "$key" ]] && bundle_packages["$key"]=1
+                [[ -z "$key" || "$key" == "default" || "$key" == "label" ]] && continue
+                bundle_packages["$key"]=1
             done <<< "$keys"
         done
     done
