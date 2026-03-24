@@ -82,6 +82,16 @@ vokun::core::log_action() {
     local profile
     profile=$(vokun::profile::get_active 2>/dev/null || echo "default")
     printf '%s|%s|%s|%s|%s\n' "$timestamp" "$action" "$target" "$details" "$profile" >> "$VOKUN_LOG_FILE"
+
+    # Trim log to max 1000 entries
+    local max_lines=1000
+    local line_count
+    line_count=$(wc -l < "$VOKUN_LOG_FILE")
+    if (( line_count > max_lines )); then
+        local tmp
+        tmp=$(mktemp)
+        tail -n "$max_lines" "$VOKUN_LOG_FILE" > "$tmp" && mv "$tmp" "$VOKUN_LOG_FILE"
+    fi
 }
 
 # Read the last N log entries
