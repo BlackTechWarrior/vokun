@@ -281,6 +281,18 @@ vokun::setup::uninstall() {
         fi
     fi
 
+    # Hint about AUR build cache
+    local aur_helper
+    aur_helper=$(vokun::core::get_aur_helper 2>/dev/null || true)
+    local cache_dir="${HOME}/.cache/${aur_helper:-paru}/clone/vokun"
+    if [[ -d "$cache_dir" ]]; then
+        printf '\n'
+        vokun::core::info "AUR build cache still exists at:"
+        printf '    %s\n\n' "$cache_dir"
+        printf '  Clean it with: %srm -rf %s%s\n' "$VOKUN_COLOR_BOLD" "$cache_dir" "$VOKUN_COLOR_RESET"
+        printf '  Or clear all AUR cache: %s%s -Scc%s\n' "$VOKUN_COLOR_BOLD" "${aur_helper:-paru}" "$VOKUN_COLOR_RESET"
+    fi
+
     printf '\n'
     vokun::core::success "Vokun has been uninstalled."
 }
