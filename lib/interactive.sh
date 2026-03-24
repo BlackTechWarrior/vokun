@@ -225,7 +225,7 @@ vokun::interactive::wizard() {
         local reply
         read -r reply
         case "$reply" in
-            [sS]|[sS][kk][iI][pP])
+            [sS]|[sS][kK][iI][pP])
                 printf '  %s→ Skipped%s\n\n' "$VOKUN_COLOR_DIM" "$VOKUN_COLOR_RESET"
                 ;;
             *)
