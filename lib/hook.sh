@@ -54,9 +54,7 @@ Exec = /usr/local/bin/vokun sync --auto --quiet
 HOOKEOF
 
     vokun::core::show_cmd "sudo mv $tmpfile $VOKUN_HOOK_PATH"
-    sudo mv "$tmpfile" "$VOKUN_HOOK_PATH"
-
-    if [[ $? -eq 0 ]]; then
+    if sudo mv "$tmpfile" "$VOKUN_HOOK_PATH"; then
         sudo chmod 644 "$VOKUN_HOOK_PATH"
         vokun::core::success "Hook installed successfully."
     else
@@ -82,9 +80,7 @@ vokun::hook::remove() {
     fi
 
     vokun::core::show_cmd "sudo rm $VOKUN_HOOK_PATH"
-    sudo rm "$VOKUN_HOOK_PATH"
-
-    if [[ $? -eq 0 ]]; then
+    if sudo rm "$VOKUN_HOOK_PATH"; then
         vokun::core::success "Hook removed successfully."
     else
         vokun::core::error "Failed to remove hook."
