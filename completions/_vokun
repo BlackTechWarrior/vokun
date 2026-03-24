@@ -42,6 +42,10 @@ _vokun() {
         'log:Show action log'
         'rollback:Undo the last reversible action'
         'dotfiles:Manage dotfiles'
+        'why:Show which bundles include a package'
+        'snapshot:Save and restore system snapshots'
+        'untracked:List ad-hoc packages not in any bundle'
+        'doctor:Run all health checks'
         'help:Show help'
     )
 
@@ -128,6 +132,17 @@ _vokun() {
                     )
                     _describe -t dotfiles-cmds 'dotfiles subcommand' dotfiles_cmds
                     ;;
+                snapshot)
+                    local -a snapshot_cmds
+                    snapshot_cmds=(
+                        'create:Save current system state'
+                        'list:Show all saved snapshots'
+                        'diff:Compare snapshot against current state'
+                        'restore:Restore system to match a snapshot'
+                        'delete:Remove a saved snapshot'
+                    )
+                    _describe -t snapshot-cmds 'snapshot subcommand' snapshot_cmds
+                    ;;
                 help)
                     local -a help_topics
                     help_topics=(
@@ -136,7 +151,8 @@ _vokun() {
                         'cache' 'size' 'recent' 'foreign' 'explicit'
                         'export' 'import' 'broken' 'hook' 'setup'
                         'uninstall' 'bundle' 'sync' 'check' 'diff'
-                        'profile' 'log' 'rollback' 'dotfiles' 'help'
+                        'profile' 'log' 'rollback' 'dotfiles'
+                        'why' 'snapshot' 'untracked' 'doctor' 'help'
                     )
                     _describe -t help-topics 'subcommand' help_topics
                     ;;
