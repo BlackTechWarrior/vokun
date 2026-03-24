@@ -14,6 +14,7 @@ optdepends=(
     'jq: JSON state tracking'
     'pacman-contrib: cache management (paccache)'
 )
+install=vokun.install
 makedepends=('git')
 source=("git+${url}.git")
 sha256sums=('SKIP')

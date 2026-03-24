@@ -31,6 +31,10 @@ uninstall:
 	rm -f "$(FISH_COMP)/vokun.fish"
 	rm -rf "$(LICENSEDIR)"
 	@echo ":: vokun removed."
+	@echo ""
+	@echo "   Note: Your config directory was kept at ~/.config/vokun"
+	@echo "   It contains your custom bundles, state, and settings."
+	@echo "   To remove it: rm -rf ~/.config/vokun"
 
 test:
 	@echo ":: Running tests..."
