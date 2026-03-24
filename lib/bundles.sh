@@ -1215,7 +1215,9 @@ vokun::bundles::remove() {
 # Change select-one choices for an installed bundle
 vokun::bundles::select() {
     local name="${1:-}"
+    # shellcheck disable=SC2034
     VOKUN_SELECT_EXCLUDE=()
+    # shellcheck disable=SC2034
     VOKUN_SELECT_ONLY=()
 
     if [[ -z "$name" ]]; then

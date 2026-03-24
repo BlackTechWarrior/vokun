@@ -352,6 +352,7 @@ ${VOKUN_COLOR_BOLD}MAINTENANCE${VOKUN_COLOR_RESET}
     ${VOKUN_COLOR_YELLOW}diff${VOKUN_COLOR_RESET}    <pkg>            Show AUR package PKGBUILD
 
 ${VOKUN_COLOR_BOLD}QUERY & DIAGNOSTICS${VOKUN_COLOR_RESET}
+    ${VOKUN_COLOR_MAGENTA}status${VOKUN_COLOR_RESET}                   Show system overview and stats
     ${VOKUN_COLOR_MAGENTA}why${VOKUN_COLOR_RESET}     <pkg>            Show which bundles include a package
     ${VOKUN_COLOR_MAGENTA}untracked${VOKUN_COLOR_RESET}                List ad-hoc installs not in any bundle
     ${VOKUN_COLOR_MAGENTA}doctor${VOKUN_COLOR_RESET}                   Run all health checks
@@ -756,6 +757,15 @@ directory (~/.config/vokun) with custom bundles and state.
 No packages that vokun installed are removed — only vokun itself.
 EOF
             ;;
+        status)
+            cat <<EOF
+${VOKUN_COLOR_BOLD}vokun status${VOKUN_COLOR_RESET}
+
+Show a dashboard overview: active profile, installed/available bundle counts,
+tracked/system package counts, active selections, untracked packages, and
+timestamps for the last system update and sync.
+EOF
+            ;;
         why)
             cat <<EOF
 ${VOKUN_COLOR_BOLD}vokun why${VOKUN_COLOR_RESET} <package>
@@ -862,6 +872,128 @@ vokun::core::in_array() {
         [[ "$item" == "$needle" ]] && return 0
     done
     return 1
+}
+
+# --- vokun status ---
+
+vokun::core::status() {
+    printf '\n%svokun%s %s(v%s)%s\n' \
+        "$VOKUN_COLOR_BOLD" "$VOKUN_COLOR_RESET" \
+        "$VOKUN_COLOR_DIM" "$VOKUN_VERSION" "$VOKUN_COLOR_RESET"
+    printf '%s\n\n' "$(printf '%.0s─' {1..50})"
+
+    # Profile
+    local profile
+    profile=$(vokun::profile::get_active 2>/dev/null || echo "default")
+    printf '  %sProfile:%s       %s\n' "$VOKUN_COLOR_BOLD" "$VOKUN_COLOR_RESET" "$profile"
+
+    # Bundle counts
+    local installed_count=0 available_count=0
+    if command -v jq &>/dev/null && [[ -f "$VOKUN_STATE_FILE" ]]; then
+        installed_count=$(jq '.installed_bundles | length' "$VOKUN_STATE_FILE" 2>/dev/null || echo "0")
+    fi
+    local -a all_bundles
+    mapfile -t all_bundles < <(vokun::bundles::find_all)
+    available_count=${#all_bundles[@]}
+    printf '  %sBundles:%s       %s installed / %s available\n' \
+        "$VOKUN_COLOR_BOLD" "$VOKUN_COLOR_RESET" "$installed_count" "$available_count"
+
+    # Package counts
+    local tracked_count=0
+    if command -v jq &>/dev/null && [[ -f "$VOKUN_STATE_FILE" ]]; then
+        tracked_count=$(jq '[.installed_bundles[].packages[]?] | unique | length' "$VOKUN_STATE_FILE" 2>/dev/null || echo "0")
+    fi
+    local system_count
+    system_count=$(pacman -Q 2>/dev/null | wc -l)
+    printf '  %sPackages:%s      %s tracked, %s total on system\n' \
+        "$VOKUN_COLOR_BOLD" "$VOKUN_COLOR_RESET" "$tracked_count" "$system_count"
+
+    # Selections
+    if command -v jq &>/dev/null && [[ -f "$VOKUN_STATE_FILE" ]]; then
+        local sel_count
+        sel_count=$(jq '[.installed_bundles[].selections? // {} | to_entries[]] | length' "$VOKUN_STATE_FILE" 2>/dev/null || echo "0")
+        if [[ "$sel_count" -gt 0 ]]; then
+            local sel_bundle_count
+            sel_bundle_count=$(jq '[.installed_bundles | to_entries[] | select(.value.selections? and (.value.selections | length > 0))] | length' "$VOKUN_STATE_FILE" 2>/dev/null || echo "0")
+            printf '  %sSelections:%s    %s active across %s bundle(s)\n' \
+                "$VOKUN_COLOR_BOLD" "$VOKUN_COLOR_RESET" "$sel_count" "$sel_bundle_count"
+        fi
+    fi
+
+    # Untracked count (from action log)
+    if [[ -n "${VOKUN_LOG_FILE:-}" && -f "$VOKUN_LOG_FILE" ]]; then
+        local untracked_count=0
+        local -A got_pkgs=()
+        while IFS='|' read -r _ action target _ _; do
+            if [[ "$action" == "get" ]]; then
+                local word
+                # shellcheck disable=SC2086
+                for word in $target; do
+                    [[ -n "$word" ]] && got_pkgs["$word"]=1
+                done
+            fi
+        done < "$VOKUN_LOG_FILE"
+
+        if [[ ${#got_pkgs[@]} -gt 0 ]]; then
+            local -A bundle_pkgs=()
+            local bf
+            for bf in "${all_bundles[@]}"; do
+                vokun::toml::parse "$bf"
+                local section
+                for section in "packages" "packages.aur" "packages.optional"; do
+                    local keys
+                    keys=$(vokun::toml::keys "$section")
+                    [[ -z "$keys" ]] && continue
+                    local k
+                    while IFS= read -r k; do
+                        [[ -n "$k" ]] && bundle_pkgs["$k"]=1
+                    done <<< "$keys"
+                done
+                local sc
+                while IFS= read -r sc; do
+                    [[ -z "$sc" ]] && continue
+                    local skeys
+                    skeys=$(vokun::toml::keys "select.${sc}")
+                    [[ -z "$skeys" ]] && continue
+                    while IFS= read -r k; do
+                        [[ -n "$k" && "$k" != "default" && "$k" != "label" ]] && bundle_pkgs["$k"]=1
+                    done <<< "$skeys"
+                done < <(vokun::toml::subsections "select")
+            done
+
+            local p
+            for p in "${!got_pkgs[@]}"; do
+                [[ ! -v "bundle_pkgs[$p]" ]] && ((untracked_count++)) || true
+            done
+
+            if [[ "$untracked_count" -gt 0 ]]; then
+                printf '  %sUntracked:%s    %s package(s) installed via vokun get\n' \
+                    "$VOKUN_COLOR_YELLOW" "$VOKUN_COLOR_RESET" "$untracked_count"
+            fi
+        fi
+    fi
+
+    # Last update (from pacman log)
+    if [[ -f /var/log/pacman.log ]]; then
+        local last_update
+        last_update=$(grep -a '\[PACMAN\] starting full system upgrade' /var/log/pacman.log 2>/dev/null | tail -1 | grep -oP '^\[\K[^\]]+' || true)
+        if [[ -n "$last_update" ]]; then
+            printf '  %sLast update:%s  %s\n' \
+                "$VOKUN_COLOR_BOLD" "$VOKUN_COLOR_RESET" "$last_update"
+        fi
+    fi
+
+    # Last sync (from vokun log)
+    if [[ -n "${VOKUN_LOG_FILE:-}" && -f "$VOKUN_LOG_FILE" ]]; then
+        local last_sync
+        last_sync=$(grep '|sync|' "$VOKUN_LOG_FILE" 2>/dev/null | tail -1 | cut -d'|' -f1 || true)
+        if [[ -n "$last_sync" ]]; then
+            printf '  %sLast sync:%s    %s\n' \
+                "$VOKUN_COLOR_BOLD" "$VOKUN_COLOR_RESET" "$last_sync"
+        fi
+    fi
+
+    printf '\n'
 }
 
 # Check if a package is installed

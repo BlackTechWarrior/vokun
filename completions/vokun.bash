@@ -7,7 +7,7 @@ _vokun() {
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
 
-    local subcommands="install remove select list info search get yeet find which owns update orphans cache size recent foreign explicit export import broken hook setup uninstall bundle sync check diff profile log rollback dotfiles why snapshot untracked doctor help"
+    local subcommands="install remove select list info search get yeet find which owns update orphans cache size recent foreign explicit export import broken hook setup uninstall bundle sync check diff profile log rollback dotfiles status why snapshot untracked doctor help"
 
     # Complete subcommand as first argument
     if [[ $COMP_CWORD -eq 1 ]]; then

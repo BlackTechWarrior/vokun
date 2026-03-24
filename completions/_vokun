@@ -43,6 +43,7 @@ _vokun() {
         'log:Show action log'
         'rollback:Undo the last reversible action'
         'dotfiles:Manage dotfiles'
+        'status:Show system overview and stats'
         'why:Show which bundles include a package'
         'snapshot:Save and restore system snapshots'
         'untracked:List ad-hoc packages not in any bundle'
@@ -150,7 +151,7 @@ _vokun() {
                 help)
                     local -a help_topics
                     help_topics=(
-                        'install' 'remove' 'select' 'list' 'info' 'search' 'get'
+                        'install' 'remove' 'select' 'list' 'info' 'search' 'status' 'get'
                         'yeet' 'find' 'which' 'owns' 'update' 'orphans'
                         'cache' 'size' 'recent' 'foreign' 'explicit'
                         'export' 'import' 'broken' 'hook' 'setup'

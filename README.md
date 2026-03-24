@@ -1,4 +1,4 @@
-# Vokun
+<h1><img src="docs/vokun-logo.png" alt="vokun" height="32" style="vertical-align: middle;"> Vokun</h1>
 
 **Task-oriented package bundle manager for Arch Linux.**
 
@@ -79,6 +79,7 @@ vokun install <bundle> --dry-run            # Preview what would be installed
 vokun rollback                              # Undo the last reversible action
 vokun remove  <bundle>                      # Remove packages unique to this bundle
 vokun remove  <bundle> --dry-run            # Preview what would be removed
+vokun select  <bundle>                      # Change pick-one selections for a bundle
 vokun list                                  # List all available bundles
 vokun list --installed                      # List installed bundles only
 vokun info    <bundle>                      # Show bundle contents without installing
@@ -131,6 +132,7 @@ destructive actions show a preview and require confirmation.
 ### Query & diagnostics
 
 ```bash
+vokun status                    # Show system overview (profile, bundles, packages, times)
 vokun why <pkg>                 # Show which bundles include a package
 vokun untracked                 # List ad-hoc installs not in any bundle
 vokun doctor                    # Run all health checks (deps, drift, orphans, cache)

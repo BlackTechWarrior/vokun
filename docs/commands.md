@@ -87,6 +87,17 @@ after the operation.
 
 Use `--dry-run` to preview what would be removed without making changes.
 
+### vokun select
+
+```
+vokun select <bundle>
+```
+
+Change your pick-one selections for an installed bundle. Bundles with
+`[select.*]` sections let you choose one tool per category (e.g., editor,
+shell, pager). Shows current selections and prompts for new choices. Offers
+to remove old selections after switching.
+
 ### vokun list
 
 ```
@@ -216,6 +227,17 @@ All dotfiles actions are recorded in the action log.
 ---
 
 ## Query & diagnostics
+
+### vokun status
+
+```
+vokun status
+```
+
+Show a dashboard overview of your vokun setup: active profile,
+installed/available bundle counts, tracked/system package counts, active
+selections, untracked packages, and timestamps for the last system update and
+sync.
 
 ### vokun why
 

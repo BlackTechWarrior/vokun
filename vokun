@@ -170,6 +170,7 @@ case "$command" in
     dotfiles)   vokun::dotfiles::dispatch "${ARGS[@]}" ;;
 
     # Query & diagnostics
+    status)     vokun::core::status ;;
     why)        vokun::why::run "${ARGS[@]}" ;;
     snapshot)   vokun::snapshot::dispatch "${ARGS[@]}" ;;
     untracked)  vokun::why::untracked "${ARGS[@]}" ;;

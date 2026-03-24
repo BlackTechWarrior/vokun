@@ -5,7 +5,7 @@ nav_order: 1
 permalink: /
 ---
 
-# Vokun
+<h1><img src="vokun-logo.png" alt="vokun" height="32" style="vertical-align: middle;"> Vokun</h1>
 
 **Task-oriented package bundle manager for Arch Linux.**
 
