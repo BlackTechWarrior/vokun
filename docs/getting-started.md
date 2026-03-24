@@ -65,6 +65,20 @@ degrade gracefully with a warning.
 
 ---
 
+## Initial setup
+
+After installing, run the setup command to verify dependencies and optionally
+bootstrap an AUR helper:
+
+```bash
+vokun setup
+```
+
+This checks for required tools (Bash 4+, pacman, jq) and optional ones (paru,
+yay, fzf, pacman-contrib), offering to install anything that is missing.
+
+---
+
 ## First commands
 
 ### Interactive mode
@@ -77,7 +91,8 @@ vokun
 
 This launches an interactive menu (powered by `fzf` when available) where you
 can browse bundles, install, remove, and access every command without memorizing
-subcommands.
+subcommands. On a fresh install (no state file), a first-run wizard guides you
+through initial configuration.
 
 ### Browse bundles
 
@@ -131,3 +146,19 @@ fzf = true
 ```
 
 See the [Configuration](configuration) page for all available options.
+
+---
+
+## Profiles
+
+If you need separate sets of installed bundles (e.g. for work and personal),
+use profiles:
+
+```bash
+vokun profile create work
+vokun profile switch work
+vokun install coding           # Installed under the "work" profile only
+vokun profile switch default   # Switch back to the default profile
+```
+
+See the [Configuration](configuration) page for details on how profiles work.

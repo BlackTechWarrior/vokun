@@ -61,12 +61,42 @@ show_pkgbuild = false          # Automatically display the PKGBUILD on AUR insta
 
 ---
 
+## Profiles
+
+Profiles let you maintain independent sets of installed bundles. This is useful
+when the same machine serves different roles (e.g. work vs. personal) or when
+you want to test bundle changes without affecting your main state.
+
+```bash
+vokun profile list              # List all profiles
+vokun profile show              # Show the active profile name
+vokun profile create work       # Create a new profile
+vokun profile switch work       # Switch to the "work" profile
+vokun profile delete work       # Delete a profile
+```
+
+Each profile has its own state file:
+
+| Profile | State file |
+|---------|------------|
+| `default` | `state.json` |
+| `work` | `state-work.json` |
+| `<name>` | `state-<name>.json` |
+
+The active profile is tracked in `~/.config/vokun/.active_profile`. The default
+profile uses `state.json` (no suffix) for backwards compatibility -- if
+`.active_profile` does not exist, vokun uses the default profile.
+
+---
+
 ## File locations
 
 | Path | Purpose |
 |------|---------|
 | `~/.config/vokun/vokun.conf` | User configuration (TOML) |
-| `~/.config/vokun/state.json` | Bundle install state (managed automatically) |
+| `~/.config/vokun/state.json` | Bundle install state for the default profile |
+| `~/.config/vokun/state-<name>.json` | Bundle install state for named profiles |
+| `~/.config/vokun/.active_profile` | Tracks the currently active profile |
 | `~/.config/vokun/bundles/custom/` | User-created bundle definitions |
 
 The config directory follows the XDG Base Directory specification. If

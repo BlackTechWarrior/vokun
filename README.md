@@ -32,7 +32,8 @@ Skyrim. It has zero namespace collisions in the CLI/package tool space.
 
 ```bash
 paru -S vokun            # Install from the AUR
-vokun                    # Launch interactive mode
+vokun setup              # Check dependencies, bootstrap paru if needed
+vokun                    # Launch interactive mode (first-run wizard on fresh install)
 vokun list               # Browse available bundles
 vokun install sysadmin   # Install the sysadmin toolkit
 ```
@@ -115,9 +116,47 @@ vokun broken                    # Check for broken symlinks and deps
 
 ```bash
 vokun export                    # Export custom bundles and config (TOML)
+vokun export mybackup.toml      # Export to a specific file
 vokun export --json             # Export in JSON format
 vokun import <file>             # Import bundles from a file
 vokun import <file> --dry       # Preview import without applying
+```
+
+When importing, vokun shows **hook safety warnings** -- any `post_install`
+commands found in the imported bundles are displayed for review before you
+confirm the import.
+
+### Sync
+
+```bash
+vokun sync                      # Detect untracked packages (forward sync)
+vokun sync --auto               # Auto-add untracked packages without prompting
+vokun sync --quiet              # Suppress informational output
+```
+
+Sync also performs **reverse sync** (detects packages removed outside vokun) and
+**drift detection** (compares installed state against current TOML definitions to
+find new or removed packages upstream).
+
+### Profiles
+
+```bash
+vokun profile show              # Show the active profile
+vokun profile list              # List all profiles
+vokun profile switch <name>     # Switch to a different profile
+vokun profile create <name>     # Create a new profile
+vokun profile delete <name>     # Delete a profile
+```
+
+Profiles let you maintain separate sets of installed bundles. Each profile has
+its own state file (`state-<name>.json`). The default profile uses `state.json`
+for backwards compatibility.
+
+### AUR utilities
+
+```bash
+vokun check <package>           # AUR trust scoring (votes, age, maintainer)
+vokun diff  <package>           # View the PKGBUILD for an AUR package
 ```
 
 ### Automation
@@ -127,6 +166,8 @@ vokun hook install              # Install pacman notification hook
 vokun hook install --dry-run    # Preview without changes
 vokun hook remove               # Remove the hook
 vokun hook remove  --dry-run    # Preview removal
+vokun setup                     # Check dependencies and bootstrap paru
+vokun uninstall                 # Remove vokun from the system
 ```
 
 ### Example output
@@ -158,6 +199,8 @@ Tags: admin, essentials, cli
 ---
 
 ## Default Bundle Catalog
+
+Vokun ships with 24 default bundles across six categories.
 
 ### Essentials
 
@@ -269,7 +312,7 @@ post_install = [
 
 **Sections:**
 
-- `[meta]` -- Bundle metadata: name, description, tags (used by `vokun search`), and version.
+- `[meta]` -- Bundle metadata: name, description, tags (used by `vokun search`), and version. You can also set `extends = "sysadmin"` to inherit all packages from another bundle (bundle composition/inheritance).
 - `[packages]` -- Core packages from the official repositories. Each key is a package name; the value is a human-readable description shown during install.
 - `[packages.aur]` -- AUR packages. These are flagged with integrity warnings and require an AUR helper (paru or yay).
 - `[packages.optional]` -- Packages offered but not selected by default. The user is asked whether to include them during install.
@@ -277,6 +320,19 @@ post_install = [
 
 Once the file is saved, the bundle appears immediately in `vokun list` and can
 be installed with `vokun install my-tools`.
+
+You can also manage custom bundles from the command line:
+
+```bash
+vokun bundle create <name>      # Create a new custom bundle interactively
+vokun bundle add <bundle> <pkg> # Add a package to an existing bundle
+vokun bundle rm <bundle> <pkg>  # Remove a package from a bundle
+vokun bundle edit <bundle>      # Open a bundle in your editor
+vokun bundle delete <bundle>    # Delete a custom bundle
+```
+
+**Note:** Colors are automatically disabled when output is piped to another
+command or redirected to a file.
 
 ---
 

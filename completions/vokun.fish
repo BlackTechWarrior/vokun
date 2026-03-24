@@ -5,7 +5,7 @@
 complete -c vokun -f
 
 # Subcommands
-set -l subcommands install remove list info search get yeet find which owns update orphans cache size recent foreign explicit export import broken hook setup help
+set -l subcommands install remove list info search get yeet find which owns update orphans cache size recent foreign explicit export import broken hook setup uninstall bundle sync check diff profile help
 
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a install  -d "Install a bundle"
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a remove   -d "Remove a bundle"
@@ -29,6 +29,12 @@ complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a import   
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a broken   -d "Check for broken symlinks and deps"
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a hook     -d "Manage pacman notification hook"
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a setup    -d "Check and install optional dependencies"
+complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a uninstall -d "Remove vokun from the system"
+complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a bundle   -d "Manage custom bundles"
+complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a sync     -d "Reconcile state with installed packages"
+complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a check    -d "AUR trust scoring for a package"
+complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a diff     -d "View PKGBUILD for an AUR package"
+complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a profile  -d "Manage installation profiles"
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a help     -d "Show help"
 
 # Global flags
@@ -58,6 +64,16 @@ complete -c vokun -n "__fish_seen_subcommand_from import"  -l dry  -d "Preview c
 
 # hook completes with install and remove subcommands
 complete -c vokun -n "__fish_seen_subcommand_from hook"    -a "install remove" -d "Hook action"
+
+# profile completes with subcommands
+complete -c vokun -n "__fish_seen_subcommand_from profile" -a "list switch create delete show" -d "Profile action"
+
+# sync completes with flags
+complete -c vokun -n "__fish_seen_subcommand_from sync"    -l auto  -d "Auto-reconcile without prompting"
+complete -c vokun -n "__fish_seen_subcommand_from sync"    -l quiet -d "Suppress informational output"
+
+# bundle completes with subcommands
+complete -c vokun -n "__fish_seen_subcommand_from bundle"  -a "create add rm edit delete" -d "Bundle action"
 
 # help completes with subcommand names
 complete -c vokun -n "__fish_seen_subcommand_from help"    -a "$subcommands" -d "Subcommand"

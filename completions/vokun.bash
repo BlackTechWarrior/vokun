@@ -7,7 +7,7 @@ _vokun() {
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
 
-    local subcommands="install remove list info search get yeet find which owns update orphans cache size recent foreign explicit export import broken hook setup bundle sync check diff help"
+    local subcommands="install remove list info search get yeet find which owns update orphans cache size recent foreign explicit export import broken hook setup uninstall bundle sync check diff profile help"
 
     # Complete subcommand as first argument
     if [[ $COMP_CWORD -eq 1 ]]; then
@@ -41,6 +41,17 @@ _vokun() {
             ;;
         hook)
             COMPREPLY=( $(compgen -W "install remove" -- "$cur") )
+            ;;
+        profile)
+            COMPREPLY=( $(compgen -W "list switch create delete show" -- "$cur") )
+            ;;
+        sync)
+            if [[ "$cur" == --* ]]; then
+                COMPREPLY=( $(compgen -W "--auto --quiet" -- "$cur") )
+            fi
+            ;;
+        bundle)
+            COMPREPLY=( $(compgen -W "create add rm edit delete" -- "$cur") )
             ;;
         export)
             COMPREPLY=( $(compgen -W "--json" -- "$cur") )

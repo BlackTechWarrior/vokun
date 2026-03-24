@@ -57,6 +57,9 @@ post_install = [
 - `tags` -- Array of keywords. Used by `vokun search` and used to group bundles
   in `vokun list`. The first tag is treated as the primary category.
 - `version` -- Semantic version string.
+- `extends` -- (Optional) Name of another bundle to inherit from. All packages
+  from the parent bundle are included automatically, and the child bundle can
+  add or override packages. See [Bundle extends](#bundle-extends) below.
 
 **`[packages]`** -- Core packages from the official Arch repositories. Each key
 is a package name and each value is a description string. Descriptions are
@@ -96,6 +99,37 @@ commands.
    ```
 
 The bundle is available immediately -- no registration or build step is needed.
+
+---
+
+## Bundle extends
+
+A bundle can inherit all packages from another bundle using the `extends` field
+in `[meta]`. This enables bundle composition -- build specialized bundles on top
+of general-purpose ones without duplicating package lists.
+
+```toml
+[meta]
+name = "Full-Stack Dev"
+description = "Web development plus sysadmin essentials"
+tags = ["dev", "fullstack"]
+version = "1.0.0"
+extends = "sysadmin"
+
+[packages]
+nodejs = "JavaScript runtime"
+npm = "Node.js package manager"
+```
+
+In this example, installing `fullstack` would install all packages from the
+`sysadmin` bundle plus `nodejs` and `npm`. The parent bundle's AUR and optional
+packages are also inherited.
+
+Rules:
+
+- Only single-level inheritance is supported (no chaining `extends`).
+- The parent bundle must exist (default or custom).
+- Packages defined in the child override descriptions from the parent.
 
 ---
 

@@ -9,8 +9,12 @@ nav_order: 3
 ## Interactive mode
 
 Running `vokun` with no arguments launches an interactive menu powered by `fzf`
-(or numbered fallback). From there you can browse bundles, install, remove, and
-access every command without memorizing subcommands.
+(or a numbered fallback menu when fzf is not available). From there you can
+browse bundles, install, remove, and access every command without memorizing
+subcommands.
+
+On a **fresh install** (no state file present), vokun launches a first-run
+wizard that walks you through initial configuration.
 
 ```
 vokun
@@ -110,6 +114,30 @@ vokun search <keyword>
 Search across all bundles by name, description, tags, and package names. Results
 show the bundle name, description, and which field matched.
 
+### vokun bundle
+
+```
+vokun bundle create <name>
+vokun bundle add <bundle> <package>
+vokun bundle rm <bundle> <package>
+vokun bundle edit <bundle>
+vokun bundle delete <bundle>
+```
+
+Manage custom bundles from the command line.
+
+| Subcommand | Description |
+|------------|-------------|
+| `create` | Create a new custom bundle interactively. Supports `extends` for bundle composition. |
+| `add` | Add a package to an existing custom bundle |
+| `rm` | Remove a package from a custom bundle |
+| `edit` | Open the bundle TOML file in your editor |
+| `delete` | Delete a custom bundle entirely |
+
+When creating a bundle, you can set `extends = "sysadmin"` in the `[meta]`
+section to inherit all packages from another bundle (see
+[Bundles documentation](bundles.md) for details).
+
 ---
 
 ## Package commands
@@ -124,7 +152,8 @@ vokun get <package> [package...]
 ```
 
 Install one or more packages. Uses paru/yay if available, otherwise pacman.
-After a successful install, optionally prompts to add the package to a bundle.
+When `auto_prompt` is enabled (the default), vokun prompts after a successful
+install to add the package to an existing bundle or create a new one.
 
 Equivalent to: `sudo pacman -S --needed <package>`
 
@@ -188,13 +217,13 @@ Equivalent to: `sudo pacman -Syu`
 ### vokun export
 
 ```
-vokun export [--json]
+vokun export [file] [--json]
 ```
 
-Export your custom bundles and configuration to a portable file. By default the
-output is TOML; pass `--json` for JSON format. The export includes custom bundle
-definitions from `~/.config/vokun/bundles/custom/` and your `vokun.conf`
-settings.
+Export your custom bundles and configuration to a portable file. Optionally
+specify an output filename. By default the output is TOML; pass `--json` for
+JSON format. The export includes custom bundle definitions from
+`~/.config/vokun/bundles/custom/` and your `vokun.conf` settings.
 
 ### vokun import
 
@@ -204,6 +233,10 @@ vokun import <file> [--dry]
 
 Import bundles and configuration from a previously exported file. Pass `--dry`
 to preview the changes without writing anything to disk.
+
+**Hook safety:** If any imported bundle contains `post_install` hooks, vokun
+displays the commands for review before asking you to confirm the import. This
+prevents blindly executing arbitrary shell commands from untrusted exports.
 
 ---
 
@@ -288,6 +321,83 @@ cannot be resolved.
 
 ---
 
+## Sync
+
+### vokun sync
+
+```
+vokun sync [--auto] [--quiet]
+```
+
+Reconcile vokun's state with what is actually installed on the system. Sync
+performs three checks:
+
+1. **Forward sync** -- detects packages installed outside vokun (e.g. via
+   `pacman -S`) that are not tracked in any bundle.
+2. **Reverse sync** -- detects packages that were removed outside vokun (e.g.
+   via `pacman -Rns`) but are still recorded in the state file.
+3. **Drift detection** -- compares the installed state against current TOML
+   bundle definitions to find packages that were added or removed upstream
+   (for example, after updating vokun to a new version with modified bundles).
+
+| Flag | Description |
+|------|-------------|
+| `--auto` | Automatically reconcile without prompting |
+| `--quiet` | Suppress informational output |
+
+---
+
+## Profiles
+
+### vokun profile
+
+```
+vokun profile show
+vokun profile list
+vokun profile switch <name>
+vokun profile create <name>
+vokun profile delete <name>
+```
+
+Manage installation profiles. Each profile maintains its own state file
+(`state-<name>.json` in the config directory). The default profile uses
+`state.json` for backwards compatibility.
+
+| Subcommand | Description |
+|------------|-------------|
+| `show` | Display the name of the currently active profile |
+| `list` | List all available profiles |
+| `switch` | Switch to a different profile |
+| `create` | Create a new empty profile |
+| `delete` | Delete a profile and its state file |
+
+The active profile is tracked in `~/.config/vokun/.active_profile`.
+
+---
+
+## AUR utilities
+
+### vokun check
+
+```
+vokun check <package>
+```
+
+Query the AUR for trust information about a package: vote count, popularity,
+last-updated date, maintainer, and out-of-date status. The result is compared
+against the configured `trust_threshold` and `warn_age_days`.
+
+### vokun diff
+
+```
+vokun diff <package>
+```
+
+Fetch and display the PKGBUILD for an AUR package. Useful for reviewing what
+a package does before installing it.
+
+---
+
 ## Automation
 
 ### vokun hook
@@ -306,3 +416,23 @@ Manage the pacman notification hook. The hook prints a reminder to run
 | `remove` | Remove the previously installed hook |
 
 Pass `--dry-run` to see what would be done without making changes.
+
+### vokun setup
+
+```
+vokun setup
+```
+
+Check that all required and optional dependencies are present. If `paru` is
+not installed, offers to bootstrap it from the AUR. This is useful after a
+fresh install or when setting up a new machine.
+
+### vokun uninstall
+
+```
+vokun uninstall
+```
+
+Remove vokun from the system. Detects whether vokun was installed via pacman
+(AUR package) or manually (make install) and uses the appropriate removal
+method.

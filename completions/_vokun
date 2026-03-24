@@ -33,6 +33,12 @@ _vokun() {
         'broken:Check for broken symlinks and deps'
         'hook:Manage pacman notification hook'
         'setup:Check and install optional dependencies'
+        'uninstall:Remove vokun from the system'
+        'bundle:Manage custom bundles'
+        'sync:Reconcile state with installed packages'
+        'check:AUR trust scoring for a package'
+        'diff:View PKGBUILD for an AUR package'
+        'profile:Manage installation profiles'
         'help:Show help'
     )
 
@@ -76,13 +82,42 @@ _vokun() {
                     hook_cmds=('install:Install the pacman hook' 'remove:Remove the pacman hook')
                     _describe -t hook-cmds 'hook subcommand' hook_cmds
                     ;;
+                profile)
+                    local -a profile_cmds
+                    profile_cmds=(
+                        'list:List all profiles'
+                        'switch:Switch to a different profile'
+                        'create:Create a new profile'
+                        'delete:Delete a profile'
+                        'show:Show the active profile'
+                    )
+                    _describe -t profile-cmds 'profile subcommand' profile_cmds
+                    ;;
+                sync)
+                    _arguments \
+                        '--auto[Auto-reconcile without prompting]' \
+                        '--quiet[Suppress informational output]'
+                    ;;
+                bundle)
+                    local -a bundle_cmds
+                    bundle_cmds=(
+                        'create:Create a new custom bundle'
+                        'add:Add a package to a bundle'
+                        'rm:Remove a package from a bundle'
+                        'edit:Open bundle in editor'
+                        'delete:Delete a custom bundle'
+                    )
+                    _describe -t bundle-cmds 'bundle subcommand' bundle_cmds
+                    ;;
                 help)
                     local -a help_topics
                     help_topics=(
                         'install' 'remove' 'list' 'info' 'search' 'get'
                         'yeet' 'find' 'which' 'owns' 'update' 'orphans'
                         'cache' 'size' 'recent' 'foreign' 'explicit'
-                        'export' 'import' 'broken' 'hook' 'help'
+                        'export' 'import' 'broken' 'hook' 'setup'
+                        'uninstall' 'bundle' 'sync' 'check' 'diff'
+                        'profile' 'help'
                     )
                     _describe -t help-topics 'subcommand' help_topics
                     ;;
