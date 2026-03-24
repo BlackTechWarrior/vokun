@@ -61,6 +61,90 @@ vokun::core::show_cmd() {
     printf '%s=> %s%s\n' "$VOKUN_COLOR_DIM" "$*" "$VOKUN_COLOR_RESET"
 }
 
+# --- Action logging ---
+
+VOKUN_LOG_FILE=""
+
+# Initialize the log file
+vokun::core::log_init() {
+    VOKUN_LOG_FILE="${VOKUN_CONFIG_DIR}/vokun.log"
+}
+
+# Write an action to the log file
+# Usage: vokun::core::log_action "install" "coding" "git base-devel cmake"
+vokun::core::log_action() {
+    [[ -z "$VOKUN_LOG_FILE" ]] && return
+    local action="$1"
+    local target="${2:-}"
+    local details="${3:-}"
+    local timestamp
+    timestamp=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+    local profile
+    profile=$(vokun::profile::get_active 2>/dev/null || echo "default")
+    printf '%s|%s|%s|%s|%s\n' "$timestamp" "$action" "$target" "$details" "$profile" >> "$VOKUN_LOG_FILE"
+}
+
+# Read the last N log entries
+# Returns pipe-delimited: timestamp|action|target|details|profile
+vokun::core::log_read() {
+    local count="${1:-10}"
+    [[ -z "$VOKUN_LOG_FILE" || ! -f "$VOKUN_LOG_FILE" ]] && return
+    tail -n "$count" "$VOKUN_LOG_FILE"
+}
+
+# Get the last log entry matching an action type
+vokun::core::log_last() {
+    local action="${1:-}"
+    [[ -z "$VOKUN_LOG_FILE" || ! -f "$VOKUN_LOG_FILE" ]] && return
+    if [[ -n "$action" ]]; then
+        grep "|${action}|" "$VOKUN_LOG_FILE" | tail -1
+    else
+        tail -1 "$VOKUN_LOG_FILE"
+    fi
+}
+
+# Show the action log
+# Usage: vokun::core::log_show [--count N]
+vokun::core::log_show() {
+    local count=20
+
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --count) count="${2:-20}"; shift 2 ;;
+            *) shift ;;
+        esac
+    done
+
+    if [[ -z "$VOKUN_LOG_FILE" || ! -f "$VOKUN_LOG_FILE" ]]; then
+        vokun::core::info "No actions logged yet."
+        return 0
+    fi
+
+    printf '\n%sAction Log%s %s(last %d entries)%s\n' \
+        "$VOKUN_COLOR_BOLD" "$VOKUN_COLOR_RESET" "$VOKUN_COLOR_DIM" "$count" "$VOKUN_COLOR_RESET"
+    printf '%s\n\n' "$(printf '%.0s─' {1..60})"
+
+    local line
+    while IFS='|' read -r timestamp action target details profile; do
+        [[ -z "$timestamp" ]] && continue
+        local action_color="$VOKUN_COLOR_CYAN"
+        case "$action" in
+            *remove*|yeet) action_color="$VOKUN_COLOR_RED" ;;
+            *install*|get) action_color="$VOKUN_COLOR_GREEN" ;;
+        esac
+        printf '  %s%s%s  %s%-15s%s  %s' \
+            "$VOKUN_COLOR_DIM" "$timestamp" "$VOKUN_COLOR_RESET" \
+            "$action_color" "$action" "$VOKUN_COLOR_RESET" \
+            "$target"
+        if [[ "$profile" != "default" && -n "$profile" ]]; then
+            printf ' %s[%s]%s' "$VOKUN_COLOR_DIM" "$profile" "$VOKUN_COLOR_RESET"
+        fi
+        printf '\n'
+    done < <(tail -n "$count" "$VOKUN_LOG_FILE")
+
+    printf '\n'
+}
+
 # --- Confirmation ---
 
 # Prompt user for confirmation
@@ -201,6 +285,7 @@ vokun::core::load_config() {
 
 vokun::core::init() {
     vokun::core::setup_colors
+    vokun::core::log_init
 
     # Create config directory if needed
     mkdir -p "${VOKUN_CONFIG_DIR}"

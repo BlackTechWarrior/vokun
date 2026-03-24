@@ -12,6 +12,10 @@ vokun::aliases::get() {
     vokun::core::run_pacman "-S" "--needed" "$@"
     local exit_code=$?
 
+    if [[ $exit_code -eq 0 ]]; then
+        vokun::core::log_action "get" "$*" ""
+    fi
+
     if [[ $exit_code -eq 0 && "${VOKUN_SYNC_AUTO_PROMPT:-true}" == "true" ]]; then
         printf '\n'
         printf '%sAdd to a bundle? [bundle name/new/n]: %s' "$VOKUN_COLOR_CYAN" "$VOKUN_COLOR_RESET"
@@ -79,7 +83,7 @@ vokun::aliases::yeet() {
         done
     done
 
-    vokun::core::run_pacman_only "-Rns" "$@"
+    vokun::core::run_pacman_only "-Rns" "$@" && vokun::core::log_action "yeet" "$*" ""
 }
 
 # --- vokun find ---

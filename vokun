@@ -153,6 +153,9 @@ case "$command" in
     setup)      vokun::setup::run ;;
     uninstall)  vokun::setup::uninstall ;;
 
+    # Log
+    log)        vokun::core::log_show "${ARGS[@]}" ;;
+
     # Help
     help)       vokun::core::help "${ARGS[@]}" ;;
 

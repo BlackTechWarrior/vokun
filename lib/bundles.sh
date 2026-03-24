@@ -724,6 +724,11 @@ vokun::bundles::install() {
 
     vokun::state::add_bundle "$name" "$all_pkgs" "$skipped_pkgs" "default"
 
+    # Log the action
+    local installed_list
+    installed_list=$(printf '%s ' "${repo_packages[@]}" "${aur_packages[@]}")
+    vokun::core::log_action "bundle-install" "$name" "$installed_list"
+
     printf '\n'
     vokun::core::success "Bundle '$name' installed successfully!"
 }
@@ -817,6 +822,9 @@ vokun::bundles::remove() {
         vokun::core::error "Some packages failed to remove"
         return 1
     }
+
+    # Log the action
+    vokun::core::log_action "bundle-remove" "$name" "${unique_pkgs[*]}"
 
     vokun::state::remove_bundle "$name"
     printf '\n'
