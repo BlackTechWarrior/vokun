@@ -286,23 +286,13 @@ vokun::bundles::_prompt_select() {
     # Build parallel arrays of package names and descriptions
     local -a pkg_names=()
     local -a pkg_descs=()
-    local default_pkg=""
-    local -a installed_indices=()
 
     while IFS= read -r key; do
         [[ -z "$key" ]] && continue
-        if [[ "$key" == "default" ]]; then
-            default_pkg=$(vokun::toml::get "${section}.default" "")
-            continue
-        fi
-        if [[ "$key" == "label" ]]; then
-            continue
-        fi
+        # Skip metadata keys
+        [[ "$key" == "default" || "$key" == "label" ]] && continue
         pkg_names+=("$key")
         pkg_descs+=("$(vokun::toml::get "${section}.${key}" "")")
-        if vokun::core::is_pkg_installed "$key"; then
-            installed_indices+=("${#pkg_names[@]}")
-        fi
     done <<< "$keys"
 
     if [[ ${#pkg_names[@]} -eq 0 ]]; then
