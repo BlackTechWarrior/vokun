@@ -634,6 +634,37 @@ vokun::bundles::install() {
         fi
     fi
 
+    # Conflict pre-flight check
+    if [[ ${#repo_packages[@]} -gt 0 ]]; then
+        local -a conflicts=()
+        local pkg
+        for pkg in "${repo_packages[@]}"; do
+            local conflict_info
+            conflict_info=$(pacman -Si "$pkg" 2>/dev/null | sed -n 's/^Conflicts With *: *//p' || true)
+            if [[ -n "$conflict_info" && "$conflict_info" != "None" ]]; then
+                # Check if any conflicting package is actually installed
+                local conflict_pkg
+                for conflict_pkg in $conflict_info; do
+                    # Strip version constraints (e.g., "foo>=1.0" -> "foo")
+                    conflict_pkg="${conflict_pkg%%[<>=]*}"
+                    if vokun::core::is_pkg_installed "$conflict_pkg"; then
+                        conflicts+=("$pkg conflicts with $conflict_pkg (installed)")
+                    fi
+                done
+            fi
+        done
+
+        if [[ ${#conflicts[@]} -gt 0 ]]; then
+            printf '\n  %sPackage conflicts detected:%s\n' "$VOKUN_COLOR_RED" "$VOKUN_COLOR_RESET"
+            for c in "${conflicts[@]}"; do
+                printf '    %s\n' "$c"
+            done
+            printf '\n'
+            vokun::core::warn "Pacman will ask to resolve these during installation."
+            printf '\n'
+        fi
+    fi
+
     # Summary
     to_install=("${repo_packages[@]}" "${aur_packages[@]}")
     local total=${#to_install[@]}
