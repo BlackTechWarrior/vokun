@@ -963,7 +963,9 @@ vokun::core::status() {
 
             local p
             for p in "${!got_pkgs[@]}"; do
-                [[ ! -v "bundle_pkgs[$p]" ]] && ((untracked_count++)) || true
+                if [[ ! -v "bundle_pkgs[$p]" ]]; then
+                    ((untracked_count++)) || true
+                fi
             done
 
             if [[ "$untracked_count" -gt 0 ]]; then
