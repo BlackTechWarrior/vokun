@@ -316,7 +316,7 @@ vokun::dotfiles::status() {
             tracked_count=$(yadm list 2>/dev/null | wc -l || echo "0")
             printf '  %sTracked:%s   %s files\n' "$VOKUN_COLOR_BOLD" "$VOKUN_COLOR_RESET" "$tracked_count"
             local yadm_repo
-            yadm_repo=$(yadm introspect repo 2>/dev/null || echo "~/.local/share/yadm/repo.git")
+            yadm_repo=$(yadm introspect repo 2>/dev/null || echo "$HOME/.local/share/yadm/repo.git")
             printf '  %sRepo:%s      %s\n' "$VOKUN_COLOR_BOLD" "$VOKUN_COLOR_RESET" "$yadm_repo"
             ;;
         stow)
