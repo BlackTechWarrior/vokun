@@ -5,7 +5,7 @@
 complete -c vokun -f
 
 # Subcommands
-set -l subcommands install remove list info search get yeet find which owns update orphans cache size recent foreign explicit export import broken hook setup uninstall bundle sync check diff profile log rollback dotfiles help
+set -l subcommands install remove list info search get yeet find which owns update orphans cache size recent foreign explicit export import broken hook setup uninstall bundle sync check diff profile log rollback dotfiles why snapshot untracked doctor help
 
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a install  -d "Install a bundle"
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a remove   -d "Remove a bundle"
@@ -38,6 +38,10 @@ complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a profile  
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a log      -d "Show action log"
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a rollback -d "Undo the last reversible action"
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a dotfiles -d "Manage dotfiles"
+complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a why       -d "Show which bundles include a package"
+complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a snapshot  -d "Save and restore system snapshots"
+complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a untracked -d "List ad-hoc packages not in any bundle"
+complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a doctor    -d "Run all health checks"
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a help     -d "Show help"
 
 # Global flags
@@ -83,6 +87,10 @@ complete -c vokun -n "__fish_seen_subcommand_from log"      -l count -d "Number 
 
 # dotfiles completes with subcommands
 complete -c vokun -n "__fish_seen_subcommand_from dotfiles" -a "init apply push pull status edit" -d "Dotfiles action"
+
+# snapshot completes with subcommands and snapshot names
+complete -c vokun -n "__fish_seen_subcommand_from snapshot" -a "create list diff restore delete" -d "Snapshot action"
+complete -c vokun -n "__fish_seen_subcommand_from snapshot" -l dry-run -d "Preview without making changes"
 
 # help completes with subcommand names
 complete -c vokun -n "__fish_seen_subcommand_from help"    -a "$subcommands" -d "Subcommand"

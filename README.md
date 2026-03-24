@@ -128,6 +128,19 @@ Wraps chezmoi, yadm, or stow behind a unified interface. The backend is
 auto-detected or can be set via `dotfiles.backend` in `vokun.conf`. All
 destructive actions show a preview and require confirmation.
 
+### Query & diagnostics
+
+```bash
+vokun why <pkg>                 # Show which bundles include a package
+vokun untracked                 # List ad-hoc installs not in any bundle
+vokun doctor                    # Run all health checks (deps, drift, orphans, cache)
+vokun snapshot create <name>    # Save current system state
+vokun snapshot list             # List saved snapshots
+vokun snapshot diff <name>      # Compare snapshot vs current state
+vokun snapshot restore <name>   # Restore to a snapshot (--dry-run to preview)
+vokun snapshot delete <name>    # Remove a snapshot
+```
+
 ### System maintenance
 
 ```bash
@@ -346,11 +359,11 @@ post_install = [
 
 **Sections:**
 
-- `[meta]` -- Bundle metadata: name, description, tags (used by `vokun search`), and version. You can also set `extends = "sysadmin"` to inherit all packages from another bundle (bundle composition/inheritance).
+- `[meta]` -- Bundle metadata: name, description, tags (used by `vokun search`), and version. Set `extends = "sysadmin"` to inherit packages from another bundle, or `extends = ["sysadmin", "python-dev"]` for multi-parent inheritance (mixins).
 - `[packages]` -- Core packages from the official repositories. Each key is a package name; the value is a human-readable description shown during install.
 - `[packages.aur]` -- AUR packages. These are flagged with integrity warnings and require an AUR helper (paru or yay).
 - `[packages.optional]` -- Packages offered but not selected by default. The user is asked whether to include them during install.
-- `[hooks]` -- `post_install` is an array of shell commands executed after a successful install.
+- `[hooks]` -- Lifecycle hook arrays: `pre_install`, `post_install`, `pre_remove`, `post_remove`. Hook commands are shown to the user and require confirmation before execution.
 
 Once the file is saved, the bundle appears immediately in `vokun list` and can
 be installed with `vokun install my-tools`.

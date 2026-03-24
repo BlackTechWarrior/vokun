@@ -49,26 +49,50 @@ vokun::bundles::find_by_name() {
 }
 
 # Load a bundle's packages, resolving the extends chain
+# Supports both single string and array extends:
+#   extends = "parent"
+#   extends = ["parent1", "parent2"]
+# Parents cannot themselves have extends (single-level restriction).
 # After calling this, TOML_DATA/TOML_SECTION_KEYS contain the merged result
 # Usage: vokun::bundles::load_with_extends "/path/to/bundle.toml"
 vokun::bundles::load_with_extends() {
     local file="$1"
+    local -a _extends_chain=()
+    if [[ $# -ge 2 ]]; then
+        # Receive the cycle-detection chain from the caller
+        shift
+        _extends_chain=("$@")
+    fi
 
     vokun::toml::parse "$file"
 
-    local extends
-    extends=$(vokun::toml::get "meta.extends" "")
+    local extends_raw
+    extends_raw=$(vokun::toml::get "meta.extends" "")
 
-    if [[ -z "$extends" ]]; then
+    if [[ -z "$extends_raw" ]]; then
         return 0
     fi
 
-    # Find the parent bundle
-    local parent_file
-    parent_file=$(vokun::bundles::find_by_name "$extends" 2>/dev/null) || {
-        vokun::core::warn "Parent bundle '$extends' not found (referenced by extends)"
+    # Build the list of parent names (supports string or newline-separated array)
+    local -a parent_names=()
+    while IFS= read -r parent; do
+        [[ -z "$parent" ]] && continue
+        parent_names+=("$parent")
+    done <<< "$extends_raw"
+
+    if [[ ${#parent_names[@]} -eq 0 ]]; then
         return 0
-    }
+    fi
+
+    # Cycle detection
+    local child_name
+    child_name=$(vokun::bundles::name_from_path "$file")
+    for p in "${parent_names[@]}"; do
+        if vokun::core::in_array "$p" "${_extends_chain[@]}" 2>/dev/null || [[ "$p" == "$child_name" ]]; then
+            vokun::core::error "Cycle detected in extends: ${_extends_chain[*]} -> $child_name -> $p"
+            return 1
+        fi
+    done
 
     # Save current child data
     local -A child_data=()
@@ -81,27 +105,84 @@ vokun::bundles::load_with_extends() {
         child_keys["$key"]="${TOML_SECTION_KEYS[$key]}"
     done
 
-    # Parse parent (recursively resolves its own extends)
-    vokun::bundles::load_with_extends "$parent_file"
+    # Clear TOML state before merging parents
+    unset TOML_DATA TOML_SECTION_KEYS
+    declare -gA TOML_DATA
+    declare -gA TOML_SECTION_KEYS
 
-    # Merge: child overrides parent for meta, child packages ADD to parent packages
-    # Restore child meta fields (they take priority)
+    # Merge each parent in order (flat union, last-writer-wins for descriptions)
+    for parent_name in "${parent_names[@]}"; do
+        local parent_file
+        parent_file=$(vokun::bundles::find_by_name "$parent_name" 2>/dev/null) || {
+            vokun::core::warn "Parent bundle '$parent_name' not found (referenced by extends)"
+            continue
+        }
+
+        # Parents cannot themselves have extends (single-level restriction)
+        local parent_extends
+        # Parse the parent to check for extends without clobbering our merge state
+        local -A saved_data=()
+        local -A saved_keys=()
+        for key in "${!TOML_DATA[@]}"; do
+            saved_data["$key"]="${TOML_DATA[$key]}"
+        done
+        for key in "${!TOML_SECTION_KEYS[@]}"; do
+            saved_keys["$key"]="${TOML_SECTION_KEYS[$key]}"
+        done
+
+        vokun::toml::parse "$parent_file"
+        parent_extends=$(vokun::toml::get "meta.extends" "")
+        if [[ -n "$parent_extends" ]]; then
+            vokun::core::warn "Parent bundle '$parent_name' itself has extends — ignored (single-level restriction)"
+        fi
+
+        # Merge parent packages into accumulator (last-writer-wins)
+        local section
+        for section in "packages" "packages.aur" "packages.optional"; do
+            local parent_section_keys
+            parent_section_keys=$(vokun::toml::keys "$section")
+            [[ -z "$parent_section_keys" ]] && continue
+            while IFS= read -r pkg; do
+                [[ -z "$pkg" ]] && continue
+                saved_data["${section}.${pkg}"]="${TOML_DATA["${section}.${pkg}"]:-}"
+                local existing="${saved_keys[$section]:-}"
+                if ! echo "$existing" | grep -qx "$pkg"; then
+                    if [[ -n "$existing" ]]; then
+                        saved_keys["$section"]+=$'\n'"$pkg"
+                    else
+                        saved_keys["$section"]="$pkg"
+                    fi
+                fi
+            done <<< "$parent_section_keys"
+        done
+
+        # Restore accumulated state
+        unset TOML_DATA TOML_SECTION_KEYS
+        declare -gA TOML_DATA
+        declare -gA TOML_SECTION_KEYS
+        for key in "${!saved_data[@]}"; do
+            TOML_DATA["$key"]="${saved_data[$key]}"
+        done
+        for key in "${!saved_keys[@]}"; do
+            TOML_SECTION_KEYS["$key"]="${saved_keys[$key]}"
+        done
+    done
+
+    # Merge child on top: child meta fields take priority
     for key in "${!child_data[@]}"; do
         if [[ "$key" == meta.* ]]; then
             TOML_DATA["$key"]="${child_data[$key]}"
         fi
     done
 
-    # Merge packages: parent packages are the base, child adds on top
+    # Merge child packages on top of parent packages
     local section
     for section in "packages" "packages.aur" "packages.optional"; do
         local child_section_keys="${child_keys[$section]:-}"
         if [[ -n "$child_section_keys" ]]; then
             while IFS= read -r pkg; do
                 [[ -z "$pkg" ]] && continue
-                # Add child's package data
                 TOML_DATA["${section}.${pkg}"]="${child_data["${section}.${pkg}"]:-}"
-                # Add to section keys if not already there
                 local existing_keys="${TOML_SECTION_KEYS[$section]:-}"
                 if ! echo "$existing_keys" | grep -qx "$pkg"; then
                     if [[ -n "$existing_keys" ]]; then
@@ -120,6 +201,49 @@ vokun::bundles::load_with_extends() {
             TOML_DATA["$key"]="${child_data[$key]}"
         fi
     done
+}
+
+# --- Hook runner ---
+# Run hooks of a given type (pre_install, post_install, pre_remove, post_remove)
+# Shows commands and requires confirmation before executing.
+# Usage: vokun::bundles::_run_hooks "post_install" <dry_run>
+vokun::bundles::_run_hooks() {
+    local hook_type="$1"
+    local dry_run="${2:-false}"
+
+    local hooks
+    hooks=$(vokun::toml::get "hooks.${hook_type}" "")
+    [[ -z "$hooks" ]] && return 0
+
+    local label="${hook_type//_/-}"
+
+    printf '\n  %s%s hooks:%s\n' "$VOKUN_COLOR_CYAN" "$label" "$VOKUN_COLOR_RESET"
+    while IFS= read -r hook_cmd; do
+        [[ -z "$hook_cmd" ]] && continue
+        printf '    %s\n' "$hook_cmd"
+    done <<< "$hooks"
+
+    if [[ "$dry_run" == true ]]; then
+        return 0
+    fi
+
+    if ! vokun::core::confirm "Run $label hooks?"; then
+        vokun::core::log "$label hooks skipped."
+        return 0
+    fi
+
+    printf '\n%sRunning %s hooks...%s\n' "$VOKUN_COLOR_DIM" "$label" "$VOKUN_COLOR_RESET"
+    while IFS= read -r hook_cmd; do
+        [[ -z "$hook_cmd" ]] && continue
+        vokun::core::show_cmd "$hook_cmd"
+        # shellcheck disable=SC2294
+        eval "$hook_cmd" || {
+            vokun::core::error "Hook failed: $hook_cmd"
+            return 1
+        }
+    done <<< "$hooks"
+
+    return 0
 }
 
 # --- vokun list ---
@@ -250,7 +374,9 @@ vokun::bundles::info() {
     fi
 
     if [[ -n "$extends" ]]; then
-        printf '%sExtends: %s%s\n' "$VOKUN_COLOR_DIM" "$extends" "$VOKUN_COLOR_RESET"
+        local extends_display
+        extends_display=$(echo "$extends" | tr '\n' ', ' | sed 's/,$//')
+        printf '%sExtends: %s%s\n' "$VOKUN_COLOR_DIM" "$extends_display" "$VOKUN_COLOR_RESET"
     fi
 
     printf '%s\n' "$(printf '%.0s─' {1..50})"
@@ -702,6 +828,12 @@ vokun::bundles::install() {
         return 1
     fi
 
+    # Run pre-install hooks
+    if ! vokun::bundles::_run_hooks "pre_install" "$dry_run"; then
+        vokun::core::error "Pre-install hook failed. Installation aborted."
+        return 1
+    fi
+
     printf '\n'
 
     # Install repo packages
@@ -724,17 +856,7 @@ vokun::bundles::install() {
     fi
 
     # Run post-install hooks
-    local hooks
-    hooks=$(vokun::toml::get "hooks.post_install" "")
-    if [[ -n "$hooks" ]]; then
-        printf '\n%sRunning post-install hooks...%s\n' "$VOKUN_COLOR_DIM" "$VOKUN_COLOR_RESET"
-        while IFS= read -r hook_cmd; do
-            [[ -z "$hook_cmd" ]] && continue
-            vokun::core::show_cmd "$hook_cmd"
-            # shellcheck disable=SC2294
-            eval "$hook_cmd"
-        done <<< "$hooks"
-    fi
+    vokun::bundles::_run_hooks "post_install" false
 
     # Update state — track installed and skipped packages
     local all_pkgs
@@ -849,10 +971,26 @@ vokun::bundles::remove() {
         return 1
     fi
 
+    # Load bundle TOML for hooks
+    local file
+    file=$(vokun::bundles::find_by_name "$name" 2>/dev/null)
+    if [[ -n "$file" ]]; then
+        vokun::bundles::load_with_extends "$file"
+    fi
+
+    # Run pre-remove hooks
+    if ! vokun::bundles::_run_hooks "pre_remove" false; then
+        vokun::core::error "Pre-remove hook failed. Removal aborted."
+        return 1
+    fi
+
     vokun::core::run_pacman_only "-Rns" "${unique_pkgs[@]}" || {
         vokun::core::error "Some packages failed to remove"
         return 1
     }
+
+    # Run post-remove hooks
+    vokun::bundles::_run_hooks "post_remove" false
 
     # Log the action
     vokun::core::log_action "bundle-remove" "$name" "${unique_pkgs[*]}"

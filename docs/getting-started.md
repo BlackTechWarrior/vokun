@@ -77,6 +77,14 @@ vokun setup
 This checks for required tools (Bash 4+, pacman, jq) and optional ones (paru,
 yay, fzf, pacman-contrib), offering to install anything that is missing.
 
+You can also run `vokun doctor` at any time for a comprehensive health check
+covering dependencies, sync drift, broken packages, orphans, cache size, and
+untracked packages:
+
+```bash
+vokun doctor
+```
+
 ---
 
 ## First commands
@@ -121,6 +129,16 @@ vokun install sysadmin
 Vokun lists the packages to install, highlights any AUR packages, offers
 optional packages separately, shows a total count, and asks for confirmation.
 Pass `--yes` or `-y` to skip the prompt.
+
+### Find which bundles include a package
+
+```bash
+vokun why strace
+```
+
+Shows every bundle that contains a package and whether it is installed. Useful
+when deciding whether to add a package to a custom bundle or when investigating
+what installed it.
 
 ### Search for bundles
 

@@ -108,6 +108,7 @@ profile uses `state.json` (no suffix) for backwards compatibility -- if
 | `~/.config/vokun/.active_profile` | Tracks the currently active profile |
 | `~/.config/vokun/bundles/custom/` | User-created bundle definitions |
 | `~/.config/vokun/vokun.log` | Action log (installs, removals, rollbacks, dotfiles actions) |
+| `~/.config/vokun/snapshots/` | Saved system snapshots (created by `vokun snapshot create`) |
 
 The config directory follows the XDG Base Directory specification. If
 `XDG_CONFIG_HOME` is set, vokun uses `$XDG_CONFIG_HOME/vokun/` instead of

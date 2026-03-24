@@ -7,7 +7,7 @@ _vokun() {
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
 
-    local subcommands="install remove list info search get yeet find which owns update orphans cache size recent foreign explicit export import broken hook setup uninstall bundle sync check diff profile log rollback dotfiles help"
+    local subcommands="install remove list info search get yeet find which owns update orphans cache size recent foreign explicit export import broken hook setup uninstall bundle sync check diff profile log rollback dotfiles why snapshot untracked doctor help"
 
     # Complete subcommand as first argument
     if [[ $COMP_CWORD -eq 1 ]]; then
@@ -66,6 +66,23 @@ _vokun() {
             ;;
         dotfiles)
             COMPREPLY=( $(compgen -W "init apply push pull status edit" -- "$cur") )
+            ;;
+        snapshot)
+            if [[ $COMP_CWORD -eq 2 ]]; then
+                COMPREPLY=( $(compgen -W "create list diff restore delete" -- "$cur") )
+            elif [[ "$cur" == --* ]]; then
+                COMPREPLY=( $(compgen -W "--dry-run --yes" -- "$cur") )
+            else
+                # Complete snapshot names for diff/restore/delete
+                local snapshots_dir="${XDG_CONFIG_HOME:-$HOME/.config}/vokun/snapshots"
+                if [[ -d "$snapshots_dir" ]]; then
+                    local names
+                    names="$(ls "$snapshots_dir" 2>/dev/null)"
+                    COMPREPLY=( $(compgen -W "$names" -- "$cur") )
+                fi
+            fi
+            ;;
+        why|untracked|doctor)
             ;;
         help)
             COMPREPLY=( $(compgen -W "$subcommands" -- "$cur") )

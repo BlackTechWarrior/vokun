@@ -215,6 +215,102 @@ All dotfiles actions are recorded in the action log.
 
 ---
 
+## Query & diagnostics
+
+### vokun why
+
+```
+vokun why <package>
+```
+
+Show which bundles include a given package and whether each bundle is currently
+installed. If the package was installed via `vokun get` but never added to a
+bundle, that is noted too.
+
+Examples:
+
+```bash
+vokun why strace
+# strace is included in:
+#   coding (installed)
+#   sysadmin (installed)
+#   c-cpp-dev (not installed)
+
+vokun why neovim
+# neovim is not in any bundle.
+# It was installed via vokun get and never added to a bundle.
+```
+
+### vokun untracked
+
+```
+vokun untracked
+```
+
+List packages that were installed via `vokun get` but never added to any bundle.
+These are ad-hoc installs that should be formalized into a bundle or removed.
+
+Each package is shown with its current install status. At the end, vokun
+suggests using `vokun bundle add` to formalize them.
+
+### vokun doctor
+
+```
+vokun doctor
+```
+
+Run all health checks in sequence and display a pass/warn/fail summary with
+actionable next steps.
+
+| Check | What it does |
+|-------|-------------|
+| Dependencies | Verifies required, recommended, and optional tools are installed |
+| Sync drift | Detects forward drift (untracked packages) and reverse drift (tracked but missing) |
+| Integrity | Checks for broken symlinks and missing dependencies |
+| Orphans | Counts orphaned packages |
+| Cache | Warns if the package cache exceeds 5 GB |
+| Untracked | Counts ad-hoc installs from `vokun get` not in any bundle |
+
+### vokun snapshot
+
+```
+vokun snapshot create <name>
+vokun snapshot list
+vokun snapshot diff <name>
+vokun snapshot restore <name> [--dry-run]
+vokun snapshot delete <name>
+```
+
+Save, compare, and restore system package snapshots. Each snapshot stores the
+full `pacman -Qe` output plus current vokun state (installed bundles, profile)
+in `~/.config/vokun/snapshots/`.
+
+| Subcommand | Description |
+|------------|-------------|
+| `create <name>` | Save the current system state as a named snapshot |
+| `list` | Show all saved snapshots with timestamps and package counts |
+| `diff <name>` | Compare a snapshot against the current system (packages added/removed, bundles changed) |
+| `restore <name>` | Install missing packages and remove extra packages to match the snapshot |
+| `delete <name>` | Remove a saved snapshot |
+
+| Flag | Description |
+|------|-------------|
+| `--dry-run` | Show what restore would do without making changes |
+| `--yes`, `-y` | Skip confirmation prompts |
+
+Examples:
+
+```bash
+vokun snapshot create before-cleanup       # Save current state
+vokun snapshot list                        # See all snapshots
+vokun snapshot diff before-cleanup         # What changed since then?
+vokun snapshot restore before-cleanup --dry-run  # Preview restore
+vokun snapshot restore before-cleanup      # Actually restore
+vokun snapshot delete before-cleanup       # Clean up
+```
+
+---
+
 ## Package commands
 
 These are convenience aliases around pacman (or your configured AUR helper).

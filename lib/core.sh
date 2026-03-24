@@ -350,6 +350,12 @@ ${VOKUN_COLOR_BOLD}MAINTENANCE${VOKUN_COLOR_RESET}
     ${VOKUN_COLOR_YELLOW}check${VOKUN_COLOR_RESET}   <pkg>            Check AUR package trust and integrity
     ${VOKUN_COLOR_YELLOW}diff${VOKUN_COLOR_RESET}    <pkg>            Show AUR package PKGBUILD
 
+${VOKUN_COLOR_BOLD}QUERY & DIAGNOSTICS${VOKUN_COLOR_RESET}
+    ${VOKUN_COLOR_MAGENTA}why${VOKUN_COLOR_RESET}     <pkg>            Show which bundles include a package
+    ${VOKUN_COLOR_MAGENTA}untracked${VOKUN_COLOR_RESET}                List ad-hoc installs not in any bundle
+    ${VOKUN_COLOR_MAGENTA}doctor${VOKUN_COLOR_RESET}                   Run all health checks
+    ${VOKUN_COLOR_MAGENTA}snapshot${VOKUN_COLOR_RESET} <action>        Save and restore system snapshots ${VOKUN_COLOR_DIM}(create, list, diff, restore, delete)${VOKUN_COLOR_RESET}
+
 ${VOKUN_COLOR_BOLD}AUTOMATION${VOKUN_COLOR_RESET}
     ${VOKUN_COLOR_MAGENTA}hook${VOKUN_COLOR_RESET}    <action>         Manage pacman hook ${VOKUN_COLOR_DIM}(install, remove)${VOKUN_COLOR_RESET}
     ${VOKUN_COLOR_MAGENTA}profile${VOKUN_COLOR_RESET}  <action>         Manage profiles ${VOKUN_COLOR_DIM}(list, switch, create, delete)${VOKUN_COLOR_RESET}
@@ -736,6 +742,75 @@ directory (~/.config/vokun) with custom bundles and state.
 No packages that vokun installed are removed — only vokun itself.
 EOF
             ;;
+        why)
+            cat <<EOF
+${VOKUN_COLOR_BOLD}vokun why${VOKUN_COLOR_RESET} <package>
+
+Show which bundles include a given package and whether each bundle is
+currently installed. If the package was installed via 'vokun get' but
+never added to a bundle, that is noted too.
+
+${VOKUN_COLOR_BOLD}Examples:${VOKUN_COLOR_RESET}
+    vokun why strace
+    vokun why neovim
+EOF
+            ;;
+        snapshot)
+            cat <<EOF
+${VOKUN_COLOR_BOLD}vokun snapshot${VOKUN_COLOR_RESET} <action> [args...]
+
+Save, compare, and restore system package snapshots.
+
+${VOKUN_COLOR_BOLD}Actions:${VOKUN_COLOR_RESET}
+    create <name>           Save current package state as a named snapshot
+    list                    Show all saved snapshots
+    diff <name>             Compare a snapshot against current system state
+    restore <name>          Restore system to match a snapshot
+    delete <name>           Remove a saved snapshot
+
+${VOKUN_COLOR_BOLD}Flags:${VOKUN_COLOR_RESET}
+    --dry-run               Show what restore would do without making changes
+
+${VOKUN_COLOR_BOLD}Examples:${VOKUN_COLOR_RESET}
+    vokun snapshot create before-cleanup
+    vokun snapshot diff before-cleanup
+    vokun snapshot restore before-cleanup --dry-run
+    vokun snapshot restore before-cleanup
+    vokun snapshot delete before-cleanup
+EOF
+            ;;
+        untracked)
+            cat <<EOF
+${VOKUN_COLOR_BOLD}vokun untracked${VOKUN_COLOR_RESET}
+
+List packages that were installed via 'vokun get' but never added to any
+bundle. These are ad-hoc installs that should be formalized into a bundle
+or removed.
+
+${VOKUN_COLOR_BOLD}Examples:${VOKUN_COLOR_RESET}
+    vokun untracked
+EOF
+            ;;
+        doctor)
+            cat <<EOF
+${VOKUN_COLOR_BOLD}vokun doctor${VOKUN_COLOR_RESET}
+
+Run all health checks and display a pass/warn/fail summary.
+
+${VOKUN_COLOR_BOLD}Checks performed:${VOKUN_COLOR_RESET}
+    Dependencies      Required, recommended, and optional tools
+    Sync drift        Packages out of sync with bundle state
+    Integrity         Broken symlinks and missing dependencies
+    Orphans           Orphaned packages count
+    Cache             Package cache size warning
+    Untracked         Ad-hoc installs not in any bundle
+
+Provides actionable next steps for anything that fails.
+
+${VOKUN_COLOR_BOLD}Examples:${VOKUN_COLOR_RESET}
+    vokun doctor
+EOF
+            ;;
         *)
             vokun::core::error "Unknown command: $cmd"
             vokun::core::log "Run 'vokun help' for a list of commands."
@@ -756,6 +831,7 @@ vokun::core::unknown() {
     vokun::core::log "  get, yeet, find, which, owns, update"
     vokun::core::log "  orphans, cache, size, recent, foreign, explicit"
     vokun::core::log "  broken, check, diff, hook, profile, dotfiles"
+    vokun::core::log "  why, snapshot, untracked, doctor"
     vokun::core::log "  log, rollback, setup, uninstall"
     vokun::core::log ""
     vokun::core::log "Run 'vokun help' for more information."
