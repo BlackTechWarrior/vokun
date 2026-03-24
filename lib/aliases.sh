@@ -14,15 +14,43 @@ vokun::aliases::get() {
 
     if [[ $exit_code -eq 0 && "${VOKUN_SYNC_AUTO_PROMPT:-true}" == "true" ]]; then
         printf '\n'
-        printf '%sAdd to a bundle? [bundle name/n]: %s' "$VOKUN_COLOR_CYAN" "$VOKUN_COLOR_RESET"
+        printf '%sAdd to a bundle? [bundle name/new/n]: %s' "$VOKUN_COLOR_CYAN" "$VOKUN_COLOR_RESET"
         local reply
         read -r reply
         if [[ -n "$reply" && "$reply" != "n" && "$reply" != "N" ]]; then
-            if vokun::state::is_installed "$reply"; then
-                # Add to existing bundle's package list in state
-                vokun::core::info "Added to bundle '$reply'"
+            if [[ "$reply" == "new" ]]; then
+                # Create a new bundle and add the package(s)
+                printf 'Bundle name: '
+                local new_name
+                read -r new_name
+                if [[ -n "$new_name" ]]; then
+                    vokun::bundle_mgmt::create "$new_name"
+                    # Add the packages to the new bundle
+                    vokun::bundle_mgmt::add "$new_name" "$@"
+                fi
+            elif vokun::state::is_installed "$reply"; then
+                # Bundle exists in state — add package to its state tracking
+                local current_pkgs
+                current_pkgs=$(vokun::state::get_bundle_packages "$reply" | tr '\n' ' ')
+                # shellcheck disable=SC2086
+                vokun::state::add_bundle "$reply" "${current_pkgs}$* " "" "default"
+                vokun::core::success "Added to bundle '$reply'"
+            elif vokun::bundles::find_by_name "$reply" &>/dev/null; then
+                # Bundle exists as a TOML file but isn't installed yet — add to the file
+                vokun::bundle_mgmt::add "$reply" "$@"
+                vokun::core::success "Added to bundle '$reply'"
             else
-                vokun::core::warn "Bundle '$reply' not found. Skipping."
+                vokun::core::warn "Bundle '$reply' not found."
+                printf '  Create it? [Y/n] '
+                local create_reply
+                read -r create_reply
+                case "$create_reply" in
+                    [nN]|[nN][oO]) ;;
+                    *)
+                        vokun::bundle_mgmt::create "$reply"
+                        vokun::bundle_mgmt::add "$reply" "$@"
+                        ;;
+                esac
             fi
         fi
     fi
