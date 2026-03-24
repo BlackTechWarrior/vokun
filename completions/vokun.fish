@@ -5,7 +5,7 @@
 complete -c vokun -f
 
 # Subcommands
-set -l subcommands install remove list info search get yeet find which owns update orphans cache size recent foreign explicit export import broken hook help
+set -l subcommands install remove list info search get yeet find which owns update orphans cache size recent foreign explicit export import broken hook setup help
 
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a install  -d "Install a bundle"
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a remove   -d "Remove a bundle"
@@ -28,6 +28,7 @@ complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a export   
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a import   -d "Import bundles from a file"
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a broken   -d "Check for broken symlinks and deps"
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a hook     -d "Manage pacman notification hook"
+complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a setup    -d "Check and install optional dependencies"
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a help     -d "Show help"
 
 # Global flags

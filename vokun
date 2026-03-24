@@ -88,6 +88,8 @@ source "${VOKUN_LIB_DIR}/interactive.sh"
 source "${VOKUN_LIB_DIR}/export.sh"
 # shellcheck source=lib/hook.sh
 source "${VOKUN_LIB_DIR}/hook.sh"
+# shellcheck source=lib/setup.sh
+source "${VOKUN_LIB_DIR}/setup.sh"
 
 # --- Initialize ---
 vokun::core::init
@@ -145,6 +147,7 @@ case "$command" in
 
     # Automation
     hook)       vokun::hook::dispatch "${ARGS[@]}" ;;
+    setup)      vokun::setup::run ;;
 
     # Help
     help)       vokun::core::help "${ARGS[@]}" ;;

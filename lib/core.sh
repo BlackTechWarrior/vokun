@@ -267,6 +267,7 @@ ${VOKUN_COLOR_BOLD}MAINTENANCE${VOKUN_COLOR_RESET}
 
 ${VOKUN_COLOR_BOLD}AUTOMATION${VOKUN_COLOR_RESET}
     ${VOKUN_COLOR_MAGENTA}hook${VOKUN_COLOR_RESET}    <action>         Manage pacman hook ${VOKUN_COLOR_DIM}(install, remove)${VOKUN_COLOR_RESET}
+    ${VOKUN_COLOR_MAGENTA}setup${VOKUN_COLOR_RESET}                    Check and install optional dependencies
 
 ${VOKUN_COLOR_BOLD}OPTIONS${VOKUN_COLOR_RESET}
     --dry-run                Show what would happen without doing it
@@ -565,6 +566,20 @@ ${VOKUN_COLOR_BOLD}Actions:${VOKUN_COLOR_RESET}
     remove     Remove the pacman hook (requires sudo)
 EOF
             ;;
+        setup)
+            cat <<EOF
+${VOKUN_COLOR_BOLD}vokun setup${VOKUN_COLOR_RESET}
+
+Check all optional dependencies and offer to install missing ones.
+Also bootstraps paru (AUR helper) from source if no AUR helper is found.
+
+${VOKUN_COLOR_BOLD}Dependencies checked:${VOKUN_COLOR_RESET}
+    jq              JSON state tracking (recommended)
+    fzf             Interactive fuzzy picker
+    paru/yay        AUR package support
+    pacman-contrib  Cache management (paccache)
+EOF
+            ;;
         *)
             vokun::core::error "Unknown command: $cmd"
             vokun::core::log "Run 'vokun help' for a list of commands."
@@ -584,7 +599,7 @@ vokun::core::unknown() {
     vokun::core::log "  export, import"
     vokun::core::log "  get, yeet, find, which, owns, update"
     vokun::core::log "  orphans, cache, size, recent, foreign, explicit"
-    vokun::core::log "  broken, check, diff, hook"
+    vokun::core::log "  broken, check, diff, hook, setup"
     vokun::core::log ""
     vokun::core::log "Run 'vokun help' for more information."
     return 1

@@ -32,6 +32,7 @@ _vokun() {
         'import:Import bundles from a file'
         'broken:Check for broken symlinks and deps'
         'hook:Manage pacman notification hook'
+        'setup:Check and install optional dependencies'
         'help:Show help'
     )
 
