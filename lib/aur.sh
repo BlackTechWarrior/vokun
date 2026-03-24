@@ -62,10 +62,14 @@ vokun::aur::check() {
     local is_orphaned=false
     [[ "$maintainer" == "orphaned" || "$maintainer" == "null" ]] && is_orphaned=true
 
-    if [[ "$is_orphaned" == true ]] || (( votes < 10 )) || (( age_days > 365 )); then
+    local threshold="${VOKUN_AUR_TRUST_THRESHOLD:-50}"
+    local warn_age="${VOKUN_AUR_WARN_AGE_DAYS:-180}"
+    local low_threshold=$(( threshold / 5 ))
+
+    if [[ "$is_orphaned" == true ]] || (( votes < low_threshold )) || (( age_days > warn_age * 2 )); then
         trust_color="$VOKUN_COLOR_RED"
         trust_label="LOW TRUST"
-    elif (( votes < 100 )) || (( age_days > 180 )); then
+    elif (( votes < threshold )) || (( age_days > warn_age )); then
         trust_color="$VOKUN_COLOR_YELLOW"
         trust_label="MODERATE TRUST"
     else

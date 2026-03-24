@@ -274,6 +274,11 @@ vokun::core::load_config() {
         [[ -n "$val" ]] && VOKUN_FZF="$val"
         val=$(vokun::toml::get "sync.auto_prompt")
         [[ -n "$val" ]] && VOKUN_SYNC_AUTO_PROMPT="$val"
+        val=$(vokun::toml::get "general.color")
+        if [[ "$val" == "false" ]]; then
+            VOKUN_NO_COLOR=true
+            vokun::core::setup_colors
+        fi
         val=$(vokun::toml::get "aur.trust_threshold")
         [[ -n "$val" ]] && VOKUN_AUR_TRUST_THRESHOLD="$val"
         val=$(vokun::toml::get "aur.warn_age_days")
