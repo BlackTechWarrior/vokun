@@ -57,24 +57,63 @@ vokun::aur::check() {
     now_epoch=$(date +%s)
     age_days=$(( (now_epoch - last_modified) / 86400 ))
 
-    # Determine trust level
+    # Determine trust level via scoring
     local trust_color trust_label
     local is_orphaned=false
     [[ "$maintainer" == "orphaned" || "$maintainer" == "null" ]] && is_orphaned=true
 
     local threshold="${VOKUN_AUR_TRUST_THRESHOLD:-50}"
     local warn_age="${VOKUN_AUR_WARN_AGE_DAYS:-180}"
-    local low_threshold=$(( threshold / 5 ))
 
-    if [[ "$is_orphaned" == true ]] || (( votes < low_threshold )) || (( age_days > warn_age * 2 )); then
+    # Build a trust score: votes and popularity add, age subtracts
+    # High votes offset age concerns (stable packages don't need frequent updates)
+    local score=0
+
+    # Votes contribution (scaled so threshold = 50 points)
+    if (( votes > 0 )); then
+        score=$(( (votes * 50) / threshold ))
+        # Cap vote contribution at 100 to keep scoring balanced
+        (( score > 100 )) && score=100
+    fi
+
+    # Popularity contribution (recent install activity; multiply by 10)
+    # Popularity is a float like "39.45" — extract integer part
+    local pop_int="${popularity%%.*}"
+    if [[ -n "$pop_int" && "$pop_int" != "0" ]]; then
+        score=$(( score + pop_int * 2 ))
+    fi
+
+    # Age penalty — reduced if votes are high
+    if (( age_days > warn_age )); then
+        local age_penalty=$(( (age_days - warn_age) / 10 ))
+        # Halve penalty if votes exceed threshold (established packages)
+        if (( votes >= threshold )); then
+            age_penalty=$(( age_penalty / 2 ))
+        fi
+        score=$(( score - age_penalty ))
+    fi
+
+    # Out-of-date flag is a strong negative signal
+    if [[ "$out_of_date" != "null" ]]; then
+        score=$(( score - 30 ))
+    fi
+
+    # Floor at 0
+    (( score < 0 )) && score=0
+
+    # Orphaned always caps at LOW regardless of score
+    if [[ "$is_orphaned" == true ]]; then
         trust_color="$VOKUN_COLOR_RED"
         trust_label="LOW TRUST"
-    elif (( votes < threshold )) || (( age_days > warn_age )); then
+    elif (( score >= 50 )); then
+        trust_color="$VOKUN_COLOR_GREEN"
+        trust_label="HIGH TRUST"
+    elif (( score >= 20 )); then
         trust_color="$VOKUN_COLOR_YELLOW"
         trust_label="MODERATE TRUST"
     else
-        trust_color="$VOKUN_COLOR_GREEN"
-        trust_label="HIGH TRUST"
+        trust_color="$VOKUN_COLOR_RED"
+        trust_label="LOW TRUST"
     fi
 
     # Display
@@ -97,7 +136,8 @@ vokun::aur::check() {
     fi
 
     printf '\n'
-    printf '  %s[ %s ]%s\n' "$trust_color" "$trust_label" "$VOKUN_COLOR_RESET"
+    printf '  %s[ %s ]%s %s(score: %d)%s\n' "$trust_color" "$trust_label" "$VOKUN_COLOR_RESET" \
+        "$VOKUN_COLOR_DIM" "$score" "$VOKUN_COLOR_RESET"
     printf '\n'
 }
 
