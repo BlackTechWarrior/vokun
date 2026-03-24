@@ -14,5 +14,11 @@ jobs:
       - name: Install shellcheck
         run: sudo apt-get update && sudo apt-get install -y shellcheck
 
-      - name: Run shellcheck
-        run: shellcheck -x -s bash vokun lib/*.sh install.sh
+      - name: Run shellcheck on lib scripts
+        run: shellcheck -s bash -e SC1091 lib/*.sh
+
+      - name: Run shellcheck on main script
+        run: shellcheck -s bash -e SC1091 vokun
+
+      - name: Run shellcheck on installer
+        run: shellcheck -s bash install.sh

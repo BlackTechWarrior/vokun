@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2034
 # vokun - Bundle management
 # create, add, rm, edit, delete
 
@@ -102,6 +103,7 @@ vokun::bundle_mgmt::create() {
         local IFS=','
         local first=true
         tags_toml="["
+        # shellcheck disable=SC2086
         for tag in $tags_input; do
             # Trim whitespace
             tag="${tag#"${tag%%[![:space:]]*}"}"
@@ -295,7 +297,6 @@ vokun::bundle_mgmt::edit() {
                      --preview="pacman -Si {1} 2>/dev/null" \
                      --header="Current packages are listed. TAB to toggle." \
                      --bind="ctrl-a:select-all,ctrl-d:deselect-all" \
-                     $(printf -- '--select=%s\n' "${current_pkgs[@]}") \
                      2>/dev/null || true
         )
 

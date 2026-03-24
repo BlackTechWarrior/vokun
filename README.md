@@ -30,7 +30,8 @@ Skyrim. It has zero namespace collisions in the CLI/package tool space.
 ## Quick Start
 
 ```bash
-paru -S vokun            # Install from the AUR
+git clone https://github.com/blacktechwarrior/vokun.git
+cd vokun && sudo make install
 vokun list               # Browse available bundles
 vokun install sysadmin   # Install the sysadmin toolkit
 ```
@@ -39,12 +40,12 @@ vokun install sysadmin   # Install the sysadmin toolkit
 
 ## Installation
 
-### AUR (recommended)
+### From source (recommended)
 
 ```bash
-paru -S vokun
-# or
-yay -S vokun
+git clone https://github.com/blacktechwarrior/vokun.git
+cd vokun
+sudo make install
 ```
 
 ### One-liner
@@ -53,12 +54,14 @@ yay -S vokun
 curl -fsSL https://raw.githubusercontent.com/blacktechwarrior/vokun/main/install.sh | bash
 ```
 
-### From source
+### AUR (coming soon)
+
+AUR package submission is planned. Once available:
 
 ```bash
-git clone https://github.com/blacktechwarrior/vokun.git
-cd vokun
-sudo make install
+paru -S vokun
+# or
+yay -S vokun
 ```
 
 ---

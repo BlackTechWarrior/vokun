@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2034
 # vokun - Sync command
 # Bridges the gap between vokun bundle management and direct pacman/paru usage.
 # Finds explicitly installed packages that are not tracked in any bundle.

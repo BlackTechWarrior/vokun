@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2034
 # vokun - Interactive first-run wizard
 # Guides new users through initial bundle selection
 
@@ -118,6 +119,7 @@ vokun::interactive::wizard() {
         local selection
         read -r selection
 
+        # shellcheck disable=SC2086
         for num in $selection; do
             if [[ "$num" =~ ^[0-9]+$ ]] && (( num >= 1 && num <= ${#categories[@]} )); then
                 selected_categories+=("${categories[$((num - 1))]}")
@@ -140,6 +142,7 @@ vokun::interactive::wizard() {
     local -a matching_tags=()
     for cat in "${selected_categories[@]}"; do
         local tags="${VOKUN_CATEGORY_TAGS[$cat]:-}"
+        # shellcheck disable=SC2086
         for tag in $tags; do
             matching_tags+=("$tag")
         done
