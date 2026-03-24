@@ -155,3 +155,118 @@ vokun::setup::bootstrap_paru() {
         return 1
     fi
 }
+
+# --- vokun uninstall ---
+
+vokun::setup::uninstall() {
+    printf '\n%sVokun Uninstall%s\n' "$VOKUN_COLOR_BOLD" "$VOKUN_COLOR_RESET"
+    printf '%s\n\n' "$(printf '%.0s─' {1..50})"
+
+    # Detect where vokun is installed
+    local vokun_bin
+    vokun_bin=$(command -v vokun 2>/dev/null || true)
+
+    if [[ -z "$vokun_bin" ]]; then
+        vokun::core::warn "vokun binary not found in PATH"
+    fi
+
+    # Determine prefix from binary location
+    local prefix=""
+    if [[ "$vokun_bin" == "/usr/local/bin/vokun" ]]; then
+        prefix="/usr/local"
+    elif [[ "$vokun_bin" == "/usr/bin/vokun" ]]; then
+        prefix="/usr"
+    fi
+
+    # List everything that will be removed
+    printf '  %sThe following will be removed:%s\n\n' "$VOKUN_COLOR_RED" "$VOKUN_COLOR_RESET"
+
+    local -a files_to_remove=()
+    local -a dirs_to_remove=()
+
+    # Binary
+    if [[ -n "$vokun_bin" ]]; then
+        printf '    %s\n' "$vokun_bin"
+        files_to_remove+=("$vokun_bin")
+    fi
+
+    # Lib and bundles
+    if [[ -n "$prefix" ]]; then
+        local share_dir="${prefix}/share/vokun"
+        if [[ -d "$share_dir" ]]; then
+            printf '    %s/  (lib, bundles)\n' "$share_dir"
+            dirs_to_remove+=("$share_dir")
+        fi
+
+        # Completions
+        local bash_comp="${prefix}/share/bash-completion/completions/vokun"
+        local zsh_comp="${prefix}/share/zsh/site-functions/_vokun"
+        local fish_comp="${prefix}/share/fish/vendor_completions.d/vokun.fish"
+        local license_dir="${prefix}/share/licenses/vokun"
+
+        for f in "$bash_comp" "$zsh_comp" "$fish_comp"; do
+            if [[ -f "$f" ]]; then
+                printf '    %s\n' "$f"
+                files_to_remove+=("$f")
+            fi
+        done
+        if [[ -d "$license_dir" ]]; then
+            printf '    %s/\n' "$license_dir"
+            dirs_to_remove+=("$license_dir")
+        fi
+    fi
+
+    # Pacman hook
+    local hook="/usr/share/libalpm/hooks/vokun-notify.hook"
+    if [[ -f "$hook" ]]; then
+        printf '    %s\n' "$hook"
+        files_to_remove+=("$hook")
+    fi
+
+    # User config
+    local config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/vokun"
+    if [[ -d "$config_dir" ]]; then
+        printf '\n    %s/  (config, state, custom bundles)\n' "$config_dir"
+    fi
+
+    printf '\n'
+
+    if [[ ${#files_to_remove[@]} -eq 0 && ${#dirs_to_remove[@]} -eq 0 ]]; then
+        vokun::core::warn "No system files found to remove."
+        return 0
+    fi
+
+    if ! vokun::core::confirm "Remove all vokun system files? (requires sudo)"; then
+        vokun::core::log "Uninstall cancelled."
+        return 1
+    fi
+
+    # Remove system files
+    for f in "${files_to_remove[@]}"; do
+        vokun::core::show_cmd "sudo rm -f $f"
+        sudo rm -f "$f"
+    done
+    for d in "${dirs_to_remove[@]}"; do
+        vokun::core::show_cmd "sudo rm -rf $d"
+        sudo rm -rf "$d"
+    done
+
+    vokun::core::success "System files removed."
+
+    # Ask about user config
+    if [[ -d "$config_dir" ]]; then
+        printf '\n'
+        printf '  Your config directory still exists at:\n'
+        printf '    %s\n\n' "$config_dir"
+        printf '  This contains your custom bundles, state, and settings.\n\n'
+        if vokun::core::confirm "Delete config directory too?"; then
+            rm -rf "$config_dir"
+            vokun::core::success "Config directory removed."
+        else
+            vokun::core::info "Config kept at $config_dir"
+        fi
+    fi
+
+    printf '\n'
+    vokun::core::success "Vokun has been uninstalled."
+}

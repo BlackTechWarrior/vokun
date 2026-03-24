@@ -268,6 +268,7 @@ ${VOKUN_COLOR_BOLD}MAINTENANCE${VOKUN_COLOR_RESET}
 ${VOKUN_COLOR_BOLD}AUTOMATION${VOKUN_COLOR_RESET}
     ${VOKUN_COLOR_MAGENTA}hook${VOKUN_COLOR_RESET}    <action>         Manage pacman hook ${VOKUN_COLOR_DIM}(install, remove)${VOKUN_COLOR_RESET}
     ${VOKUN_COLOR_MAGENTA}setup${VOKUN_COLOR_RESET}                    Check and install optional dependencies
+    ${VOKUN_COLOR_MAGENTA}uninstall${VOKUN_COLOR_RESET}                Remove vokun from your system
 
 ${VOKUN_COLOR_BOLD}OPTIONS${VOKUN_COLOR_RESET}
     --dry-run                Show what would happen without doing it
@@ -580,6 +581,17 @@ ${VOKUN_COLOR_BOLD}Dependencies checked:${VOKUN_COLOR_RESET}
     pacman-contrib  Cache management (paccache)
 EOF
             ;;
+        uninstall)
+            cat <<EOF
+${VOKUN_COLOR_BOLD}vokun uninstall${VOKUN_COLOR_RESET}
+
+Completely remove vokun from your system. Removes the binary, libraries,
+bundles, completions, and pacman hook. Optionally removes your config
+directory (~/.config/vokun) with custom bundles and state.
+
+No packages that vokun installed are removed — only vokun itself.
+EOF
+            ;;
         *)
             vokun::core::error "Unknown command: $cmd"
             vokun::core::log "Run 'vokun help' for a list of commands."
@@ -599,7 +611,7 @@ vokun::core::unknown() {
     vokun::core::log "  export, import"
     vokun::core::log "  get, yeet, find, which, owns, update"
     vokun::core::log "  orphans, cache, size, recent, foreign, explicit"
-    vokun::core::log "  broken, check, diff, hook, setup"
+    vokun::core::log "  broken, check, diff, hook, setup, uninstall"
     vokun::core::log ""
     vokun::core::log "Run 'vokun help' for more information."
     return 1

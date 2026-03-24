@@ -148,6 +148,7 @@ case "$command" in
     # Automation
     hook)       vokun::hook::dispatch "${ARGS[@]}" ;;
     setup)      vokun::setup::run ;;
+    uninstall)  vokun::setup::uninstall ;;
 
     # Help
     help)       vokun::core::help "${ARGS[@]}" ;;
