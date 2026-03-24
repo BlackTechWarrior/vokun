@@ -109,6 +109,18 @@ vokun::sync::run() {
         [[ -n "$pkg" ]] && known_pkgs["$pkg"]=1
     done
 
+    # Build a fast lookup of what's actually installed on the system
+    local -A installed_pkgs=()
+    for pkg in "${explicit_pkgs[@]}"; do
+        [[ -n "$pkg" ]] && installed_pkgs["$pkg"]=1
+    done
+    # Also include dependency-installed packages (not just explicit)
+    local dep_pkg
+    while IFS= read -r dep_pkg; do
+        [[ -n "$dep_pkg" ]] && installed_pkgs["$dep_pkg"]=1
+    done < <(pacman -Qqd 2>/dev/null || true)
+
+    # Forward sync: find packages installed but not in any bundle
     local -a untracked=()
     for pkg in "${explicit_pkgs[@]}"; do
         [[ -z "$pkg" ]] && continue
@@ -117,10 +129,36 @@ vokun::sync::run() {
         fi
     done
 
-    # Quiet mode: just print count and exit
+    # Reverse sync: find packages tracked in bundles but no longer installed
+    local -a missing_from_system=()
+    local -A missing_by_bundle=()
+    local -a bundle_names
+    mapfile -t bundle_names < <(vokun::state::get_installed_bundles)
+
+    for bundle in "${bundle_names[@]}"; do
+        [[ -z "$bundle" ]] && continue
+        local -a bpkgs
+        mapfile -t bpkgs < <(vokun::state::get_bundle_packages "$bundle")
+        for pkg in "${bpkgs[@]}"; do
+            [[ -z "$pkg" ]] && continue
+            if [[ ! -v "installed_pkgs[$pkg]" ]]; then
+                missing_from_system+=("$pkg")
+                if [[ -v "missing_by_bundle[$bundle]" ]]; then
+                    missing_by_bundle["$bundle"]+=" $pkg"
+                else
+                    missing_by_bundle["$bundle"]="$pkg"
+                fi
+            fi
+        done
+    done
+
+    # Quiet mode: just print counts and exit
     if [[ "$quiet_mode" == true ]]; then
-        if [[ ${#untracked[@]} -gt 0 ]]; then
-            printf 'vokun: %d untracked package(s). Run '\''vokun sync'\'' to manage them.\n' "${#untracked[@]}"
+        local issues=0
+        [[ ${#untracked[@]} -gt 0 ]] && issues=$((issues + ${#untracked[@]}))
+        [[ ${#missing_from_system[@]} -gt 0 ]] && issues=$((issues + ${#missing_from_system[@]}))
+        if [[ $issues -gt 0 ]]; then
+            printf 'vokun: %d sync issue(s). Run '\''vokun sync'\'' to review.\n' "$issues"
         fi
         return 0
     fi
@@ -133,10 +171,47 @@ vokun::sync::run() {
     printf '  Tracked in bundles:    %d\n' "${#tracked_pkgs[@]}"
     printf '  Marked as unmanaged:   %d\n' "${#unmanaged_pkgs[@]}"
     printf '  %sUntracked:             %d%s\n' "$VOKUN_COLOR_YELLOW" "${#untracked[@]}" "$VOKUN_COLOR_RESET"
+    printf '  %sMissing from system:   %d%s\n' "$VOKUN_COLOR_RED" "${#missing_from_system[@]}" "$VOKUN_COLOR_RESET"
+
+    # Show missing packages (reverse sync)
+    if [[ ${#missing_from_system[@]} -gt 0 ]]; then
+        printf '\n  %sPackages tracked by vokun but no longer installed:%s\n' "$VOKUN_COLOR_RED" "$VOKUN_COLOR_RESET"
+        for bundle in "${!missing_by_bundle[@]}"; do
+            printf '\n    %s[%s]%s\n' "$VOKUN_COLOR_MAGENTA" "$bundle" "$VOKUN_COLOR_RESET"
+            # shellcheck disable=SC2086
+            for pkg in ${missing_by_bundle[$bundle]}; do
+                printf '      %s\n' "$pkg"
+            done
+        done
+
+        if [[ "$auto_mode" == false ]]; then
+            printf '\n'
+            printf '  %sOptions:%s\n' "$VOKUN_COLOR_BOLD" "$VOKUN_COLOR_RESET"
+            printf '    %s1)%s Reinstall missing packages\n' "$VOKUN_COLOR_BOLD" "$VOKUN_COLOR_RESET"
+            printf '    %s2)%s Remove them from bundle tracking\n' "$VOKUN_COLOR_BOLD" "$VOKUN_COLOR_RESET"
+            printf '    %s3)%s Skip\n' "$VOKUN_COLOR_BOLD" "$VOKUN_COLOR_RESET"
+            printf '\n  Choice [1-3]: '
+            local missing_choice
+            read -r missing_choice
+            case "$missing_choice" in
+                1)
+                    vokun::core::run_pacman "-S" "--needed" "${missing_from_system[@]}"
+                    ;;
+                2)
+                    vokun::sync::_remove_missing_from_state "${bundle_names[@]}"
+                    ;;
+            esac
+        fi
+        printf '\n'
+    fi
+
+    if [[ ${#untracked[@]} -eq 0 && ${#missing_from_system[@]} -eq 0 ]]; then
+        printf '\n'
+        vokun::core::success "Everything is in sync!"
+        return 0
+    fi
 
     if [[ ${#untracked[@]} -eq 0 ]]; then
-        printf '\n'
-        vokun::core::success "All explicitly installed packages are accounted for!"
         return 0
     fi
 
@@ -260,4 +335,49 @@ vokun::sync::_prompt_add_to_bundle() {
 
     printf '\n  After editing, re-install the bundle to update tracking:\n'
     vokun::core::log "  vokun install $selected_bundle"
+}
+
+# Remove missing packages from bundle state
+# Rewrites each bundle's package list to only include what's actually installed
+vokun::sync::_remove_missing_from_state() {
+    if ! command -v jq &>/dev/null; then
+        vokun::core::warn "jq not available"
+        return 1
+    fi
+
+    local -A installed_check=()
+    local p
+    while IFS= read -r p; do
+        [[ -n "$p" ]] && installed_check["$p"]=1
+    done < <(pacman -Qq 2>/dev/null)
+
+    local bundle
+    for bundle in "$@"; do
+        [[ -z "$bundle" ]] && continue
+        local -a current_pkgs
+        mapfile -t current_pkgs < <(vokun::state::get_bundle_packages "$bundle")
+
+        local -a keep=()
+        local -a removed=()
+        for p in "${current_pkgs[@]}"; do
+            [[ -z "$p" ]] && continue
+            if [[ -v "installed_check[$p]" ]]; then
+                keep+=("$p")
+            else
+                removed+=("$p")
+            fi
+        done
+
+        if [[ ${#removed[@]} -gt 0 ]]; then
+            # Update the bundle's package list in state
+            local pkg_json
+            pkg_json=$(printf '%s\n' "${keep[@]}" | jq -R . | jq -s .)
+            local tmp
+            tmp=$(mktemp)
+            jq --arg b "$bundle" --argjson pkgs "$pkg_json" \
+                '.installed_bundles[$b].packages = $pkgs' \
+                "$VOKUN_STATE_FILE" > "$tmp" && mv "$tmp" "$VOKUN_STATE_FILE"
+            vokun::core::success "Removed ${#removed[@]} missing package(s) from '$bundle': ${removed[*]}"
+        fi
+    done
 }
