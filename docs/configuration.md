@@ -48,7 +48,7 @@ show_pkgbuild = false          # Automatically display the PKGBUILD on AUR insta
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| `hook` | boolean | `false` | When `true`, installs a pacman hook that prints a reminder to run `vokun sync` after packages are installed outside of vokun. |
+| `hook` | boolean | `false` | When `true`, installs a pacman hook that prints a reminder to run `vokun sync` after packages are installed outside of vokun. You can also manage this manually with `vokun hook install` and `vokun hook remove`. |
 | `auto_prompt` | boolean | `true` | When `true`, `vokun get` prompts you to add the newly installed package to a bundle. |
 
 ### `[aur]`

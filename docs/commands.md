@@ -6,6 +6,18 @@ nav_order: 3
 
 # Command Reference
 
+## Interactive mode
+
+Running `vokun` with no arguments launches an interactive menu powered by `fzf`
+(or numbered fallback). From there you can browse bundles, install, remove, and
+access every command without memorizing subcommands.
+
+```
+vokun
+```
+
+---
+
 ## Global flags
 
 | Flag | Description |
@@ -148,6 +160,30 @@ Equivalent to: `sudo pacman -Syu`
 
 ---
 
+## Portability
+
+### vokun export
+
+```
+vokun export [--json]
+```
+
+Export your custom bundles and configuration to a portable file. By default the
+output is TOML; pass `--json` for JSON format. The export includes custom bundle
+definitions from `~/.config/vokun/bundles/custom/` and your `vokun.conf`
+settings.
+
+### vokun import
+
+```
+vokun import <file> [--dry]
+```
+
+Import bundles and configuration from a previously exported file. Pass `--dry`
+to preview the changes without writing anything to disk.
+
+---
+
 ## Maintenance commands
 
 ### vokun orphans
@@ -212,3 +248,38 @@ vokun explicit
 List all explicitly installed packages (not pulled in as dependencies).
 
 Equivalent to: `pacman -Qe`
+
+---
+
+## System Maintenance
+
+### vokun broken
+
+```
+vokun broken
+```
+
+Scan the system for broken symlinks and missing shared-library dependencies.
+Reports files that point to non-existent targets and packages whose libraries
+cannot be resolved.
+
+---
+
+## Automation
+
+### vokun hook
+
+```
+vokun hook install [--dry-run]
+vokun hook remove  [--dry-run]
+```
+
+Manage the pacman notification hook. The hook prints a reminder to run
+`vokun sync` whenever packages are installed outside of vokun.
+
+| Subcommand | Description |
+|------------|-------------|
+| `install` | Install the pacman hook to `/etc/pacman.d/hooks/` |
+| `remove` | Remove the previously installed hook |
+
+Pass `--dry-run` to see what would be done without making changes.

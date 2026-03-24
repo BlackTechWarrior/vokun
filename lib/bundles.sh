@@ -314,10 +314,18 @@ vokun::bundles::search() {
 # --- vokun install ---
 
 vokun::bundles::install() {
-    local name="${1:-}"
+    local name=""
+    local dry_run=false
+
+    for arg in "$@"; do
+        case "$arg" in
+            --dry-run) dry_run=true ;;
+            *) [[ -z "$name" ]] && name="$arg" ;;
+        esac
+    done
 
     if [[ -z "$name" ]]; then
-        vokun::core::error "Usage: vokun install <bundle>"
+        vokun::core::error "Usage: vokun install <bundle> [--dry-run]"
         return 1
     fi
 
@@ -429,7 +437,7 @@ vokun::bundles::install() {
             fi
         done <<< "$opt_keys"
 
-        if [[ ${#opt_list[@]} -gt 0 ]]; then
+        if [[ ${#opt_list[@]} -gt 0 && "$dry_run" == false ]]; then
             printf '\n'
             printf '  Install optional packages too? [y/N] '
             local reply
@@ -455,6 +463,22 @@ vokun::bundles::install() {
     fi
 
     printf '\n  %sTotal: %d new package(s) to install%s\n\n' "$VOKUN_COLOR_BOLD" "$total" "$VOKUN_COLOR_RESET"
+
+    # Dry-run: show what would happen and exit
+    if [[ "$dry_run" == true ]]; then
+        printf '  %s[DRY RUN] Commands that would be executed:%s\n\n' "$VOKUN_COLOR_YELLOW" "$VOKUN_COLOR_RESET"
+        local helper
+        helper=$(vokun::core::get_aur_helper)
+        if [[ ${#repo_packages[@]} -gt 0 ]]; then
+            local cmd="${helper:-pacman}"
+            printf '    %s -S --needed %s\n' "$cmd" "${repo_packages[*]}"
+        fi
+        if [[ ${#aur_packages[@]} -gt 0 && -n "$helper" ]]; then
+            printf '    %s -S --needed %s\n' "$helper" "${aur_packages[*]}"
+        fi
+        printf '\n  %sNo changes were made.%s\n' "$VOKUN_COLOR_DIM" "$VOKUN_COLOR_RESET"
+        return 0
+    fi
 
     # Confirm
     if ! vokun::core::confirm "Proceed with installation?"; then
@@ -509,10 +533,18 @@ vokun::bundles::install() {
 # --- vokun remove ---
 
 vokun::bundles::remove() {
-    local name="${1:-}"
+    local name=""
+    local dry_run=false
+
+    for arg in "$@"; do
+        case "$arg" in
+            --dry-run) dry_run=true ;;
+            *) [[ -z "$name" ]] && name="$arg" ;;
+        esac
+    done
 
     if [[ -z "$name" ]]; then
-        vokun::core::error "Usage: vokun remove <bundle>"
+        vokun::core::error "Usage: vokun remove <bundle> [--dry-run]"
         return 1
     fi
 
@@ -569,6 +601,15 @@ vokun::bundles::remove() {
     fi
 
     printf '\n'
+
+    # Dry-run: show what would happen and exit
+    if [[ "$dry_run" == true ]]; then
+        printf '  %s[DRY RUN] Command that would be executed:%s\n\n' "$VOKUN_COLOR_YELLOW" "$VOKUN_COLOR_RESET"
+        printf '    sudo pacman -Rns %s\n' "${unique_pkgs[*]}"
+        printf '\n  %sNo changes were made.%s\n' "$VOKUN_COLOR_DIM" "$VOKUN_COLOR_RESET"
+        return 0
+    fi
+
     if ! vokun::core::confirm "Remove ${#unique_pkgs[@]} package(s)?"; then
         vokun::core::log "Removal cancelled."
         return 1

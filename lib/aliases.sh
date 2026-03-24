@@ -308,3 +308,72 @@ vokun::aliases::explicit() {
     vokun::core::show_cmd "pacman -Qe"
     pacman -Qe 2>/dev/null
 }
+
+# --- vokun broken ---
+vokun::aliases::broken() {
+    local found_issues=false
+
+    printf '%sBroken Package Check%s\n' "$VOKUN_COLOR_BOLD" "$VOKUN_COLOR_RESET"
+    printf '%s\n\n' "$(printf '%.0s─' {1..50})"
+
+    # 1. Broken symlinks
+    printf '  %sChecking for broken symlinks...%s\n' "$VOKUN_COLOR_DIM" "$VOKUN_COLOR_RESET"
+    vokun::core::show_cmd "find /usr/bin /usr/lib /usr/share -xtype l"
+    local broken_links
+    broken_links=$(find /usr/bin /usr/lib /usr/share -xtype l 2>/dev/null | head -20 || true)
+    if [[ -n "$broken_links" ]]; then
+        found_issues=true
+        local link_count
+        link_count=$(echo "$broken_links" | wc -l)
+        printf '  %s%d broken symlink(s) found:%s\n' "$VOKUN_COLOR_YELLOW" "$link_count" "$VOKUN_COLOR_RESET"
+        while IFS= read -r link; do
+            printf '    %s\n' "$link"
+        done <<< "$broken_links"
+    else
+        printf '  %sNo broken symlinks found.%s\n' "$VOKUN_COLOR_GREEN" "$VOKUN_COLOR_RESET"
+    fi
+
+    printf '\n'
+
+    # 2. Missing dependencies
+    printf '  %sChecking dependency integrity...%s\n' "$VOKUN_COLOR_DIM" "$VOKUN_COLOR_RESET"
+    vokun::core::show_cmd "pacman -Dk"
+    local dep_issues
+    dep_issues=$(pacman -Dk 2>&1 | grep -i "error\|warning" || true)
+    if [[ -n "$dep_issues" ]]; then
+        found_issues=true
+        printf '  %sDependency issues found:%s\n' "$VOKUN_COLOR_YELLOW" "$VOKUN_COLOR_RESET"
+        while IFS= read -r line; do
+            printf '    %s\n' "$line"
+        done <<< "$dep_issues"
+    else
+        printf '  %sDependency integrity OK.%s\n' "$VOKUN_COLOR_GREEN" "$VOKUN_COLOR_RESET"
+    fi
+
+    printf '\n'
+
+    # 3. Missing files
+    printf '  %sChecking for packages with missing files...%s\n' "$VOKUN_COLOR_DIM" "$VOKUN_COLOR_RESET"
+    vokun::core::show_cmd "pacman -Qk"
+    local missing_files
+    missing_files=$(pacman -Qk 2>&1 | grep -v '0 missing files' | head -20 || true)
+    if [[ -n "$missing_files" ]]; then
+        found_issues=true
+        local missing_count
+        missing_count=$(echo "$missing_files" | wc -l)
+        printf '  %s%d package(s) with missing files:%s\n' "$VOKUN_COLOR_YELLOW" "$missing_count" "$VOKUN_COLOR_RESET"
+        while IFS= read -r line; do
+            printf '    %s\n' "$line"
+        done <<< "$missing_files"
+    else
+        printf '  %sAll package files intact.%s\n' "$VOKUN_COLOR_GREEN" "$VOKUN_COLOR_RESET"
+    fi
+
+    printf '\n'
+
+    if [[ "$found_issues" == false ]]; then
+        vokun::core::success "System is clean — no broken packages found."
+    else
+        vokun::core::warn "Issues found. Review the output above."
+    fi
+}

@@ -19,26 +19,21 @@ declare -gA VOKUN_CATEGORY_TAGS=(
 # --- First-run check ---
 
 # Check if this is a fresh install and launch the wizard if so.
-# Only triggers when the user runs vokun with no command or "help".
+# Check if this is a fresh install. Returns 0 if it handled things (first run),
+# returns 1 if not first run (caller should launch browse).
 vokun::interactive::first_run_check() {
-    local command="${1:-}"
-
-    # Only trigger when vokun is run with no arguments
-    if [[ -n "$command" ]]; then
-        return
-    fi
-
     # Require jq for state inspection
     if ! command -v jq &>/dev/null; then
-        return
+        return 1
     fi
 
     # Check if any bundles are installed
     local bundle_count
-    bundle_count=$(jq '.installed_bundles | length' "$VOKUN_STATE_FILE" 2>/dev/null)
+    bundle_count=$(jq '.installed_bundles | length' "$VOKUN_STATE_FILE" 2>/dev/null || echo "0")
 
     if [[ "$bundle_count" -gt 0 ]]; then
-        return
+        # Not first run
+        return 1
     fi
 
     # Fresh install — offer the wizard
@@ -48,10 +43,11 @@ vokun::interactive::first_run_check() {
     local reply
     read -r reply
     case "$reply" in
-        [nN]|[nN][oO]) return ;;
+        [nN]|[nN][oO]) return 0 ;;
     esac
 
     vokun::interactive::wizard
+    return 0
 }
 
 # --- Wizard ---
@@ -280,4 +276,162 @@ vokun::interactive::wizard() {
     vokun::core::log "  vokun update        System update"
     vokun::core::log "  vokun help          Full command reference"
     printf '\n'
+}
+
+# --- Interactive bundle browser ---
+
+vokun::interactive::browse() {
+    if [[ "${VOKUN_FZF:-true}" == "true" ]] && command -v fzf &>/dev/null; then
+        vokun::interactive::_browse_fzf
+    else
+        vokun::interactive::_browse_menu
+    fi
+}
+
+# fzf-based bundle browser
+vokun::interactive::_browse_fzf() {
+    local -a bundle_files
+    mapfile -t bundle_files < <(vokun::bundles::find_all)
+
+    if [[ ${#bundle_files[@]} -eq 0 ]]; then
+        vokun::core::warn "No bundles found"
+        return 1
+    fi
+
+    # Build list of bundle names
+    local -a bundle_names=()
+    for file in "${bundle_files[@]}"; do
+        bundle_names+=("$(vokun::bundles::name_from_path "$file")")
+    done
+
+    while true; do
+        local selected
+        selected=$(printf '%s\n' "${bundle_names[@]}" | fzf \
+            --header="Select a bundle (ESC to quit)" \
+            --prompt="Browse> " \
+            --preview="vokun info {}" \
+            --preview-window=right:60%:wrap \
+            --no-info) || break
+
+        [[ -z "$selected" ]] && break
+
+        # Show info and action menu
+        vokun::bundles::info "$selected"
+
+        while true; do
+            printf '  %s[I]%snstall / %s[R]%semove / %s[B]%sack? ' \
+                "$VOKUN_COLOR_BOLD" "$VOKUN_COLOR_RESET" \
+                "$VOKUN_COLOR_BOLD" "$VOKUN_COLOR_RESET" \
+                "$VOKUN_COLOR_BOLD" "$VOKUN_COLOR_RESET"
+            local action
+            read -r action
+            case "$action" in
+                [iI])
+                    vokun::bundles::install "$selected"
+                    break
+                    ;;
+                [rR])
+                    vokun::bundles::remove "$selected"
+                    break
+                    ;;
+                [bB]|"")
+                    break
+                    ;;
+                *)
+                    vokun::core::warn "Unknown action: $action"
+                    ;;
+            esac
+        done
+    done
+}
+
+# Numbered menu fallback browser
+vokun::interactive::_browse_menu() {
+    local -a bundle_files
+    mapfile -t bundle_files < <(vokun::bundles::find_all)
+
+    if [[ ${#bundle_files[@]} -eq 0 ]]; then
+        vokun::core::warn "No bundles found"
+        return 1
+    fi
+
+    # Build parallel arrays of names and descriptions
+    local -a bundle_names=()
+    local -a bundle_descs=()
+    for file in "${bundle_files[@]}"; do
+        local name desc
+        name=$(vokun::bundles::name_from_path "$file")
+        vokun::toml::parse "$file"
+        desc=$(vokun::toml::get "meta.description" "No description")
+        bundle_names+=("$name")
+        bundle_descs+=("$desc")
+    done
+
+    local total=${#bundle_names[@]}
+
+    while true; do
+        printf '\n%s Available Bundles%s\n' "$VOKUN_COLOR_BOLD" "$VOKUN_COLOR_RESET"
+        printf '%s\n\n' "$(printf '%.0s─' {1..50})"
+
+        local i
+        for ((i = 0; i < total; i++)); do
+            local num=$((i + 1))
+            local status=""
+            if vokun::state::is_installed "${bundle_names[$i]}"; then
+                status=" ${VOKUN_COLOR_GREEN}[installed]${VOKUN_COLOR_RESET}"
+            fi
+            printf '  %s%2d)%s %-20s %s%s%s%s\n' \
+                "$VOKUN_COLOR_BOLD" "$num" "$VOKUN_COLOR_RESET" \
+                "${bundle_names[$i]}" \
+                "$VOKUN_COLOR_DIM" "${bundle_descs[$i]}" "$VOKUN_COLOR_RESET" \
+                "$status"
+        done
+
+        printf '\n  %sEnter number for info, '\''i N'\'' to install, '\''r N'\'' to remove, '\''q'\'' to quit%s\n' \
+            "$VOKUN_COLOR_DIM" "$VOKUN_COLOR_RESET"
+        printf '  > '
+        local input
+        read -r input
+
+        # Quit on empty input or 'q'
+        case "$input" in
+            q|Q|"") return 0 ;;
+        esac
+
+        # Parse input
+        local cmd="" num=""
+        if [[ "$input" =~ ^[iI][[:space:]]+([0-9]+)$ ]]; then
+            cmd="install"
+            num="${BASH_REMATCH[1]}"
+        elif [[ "$input" =~ ^[rR][[:space:]]+([0-9]+)$ ]]; then
+            cmd="remove"
+            num="${BASH_REMATCH[1]}"
+        elif [[ "$input" =~ ^[0-9]+$ ]]; then
+            cmd="info"
+            num="$input"
+        else
+            vokun::core::warn "Invalid input: $input"
+            continue
+        fi
+
+        # Validate number
+        if (( num < 1 || num > total )); then
+            vokun::core::warn "Number out of range: $num (1-$total)"
+            continue
+        fi
+
+        local selected="${bundle_names[$((num - 1))]}"
+
+        case "$cmd" in
+            info)
+                vokun::bundles::info "$selected"
+                ;;
+            install)
+                vokun::bundles::install "$selected"
+                ;;
+            remove)
+                vokun::bundles::remove "$selected"
+                ;;
+        esac
+    done
 }

@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # vokun - Package Bundle Manager for Arch Linux
-# https://github.com/blacktechwarrior/vokun
+# https://github.com/BlackTechWarrior/vokun
 set -euo pipefail
 
-VOKUN_VERSION="0.2.0"
+VOKUN_VERSION="0.3.0"
 
 # --- Path detection ---
 
@@ -49,7 +49,6 @@ for arg in "$@"; do
             exit 0
             ;;
         --help|-h)
-            # Will be handled by dispatch below
             ARGS+=("help")
             ;;
         *)
@@ -81,17 +80,28 @@ source "${VOKUN_LIB_DIR}/sync.sh"
 source "${VOKUN_LIB_DIR}/aur.sh"
 # shellcheck source=lib/interactive.sh
 source "${VOKUN_LIB_DIR}/interactive.sh"
+# shellcheck source=lib/export.sh
+source "${VOKUN_LIB_DIR}/export.sh"
+# shellcheck source=lib/hook.sh
+source "${VOKUN_LIB_DIR}/hook.sh"
 
 # --- Initialize ---
 vokun::core::init
 vokun::state::init
 
-# --- First-run check ---
-vokun::interactive::first_run_check "${ARGS[0]:-}"
+# --- No-args: first-run wizard or interactive browse ---
+if [[ ${#ARGS[@]} -eq 0 ]]; then
+    if vokun::interactive::first_run_check; then
+        # Wizard ran or was declined — exit
+        exit 0
+    fi
+    # Not first run — launch interactive browser
+    vokun::interactive::browse
+    exit 0
+fi
 
 # --- Dispatch ---
-command="${ARGS[0]:-help}"
-# Remove first arg (the command) from ARGS
+command="${ARGS[0]}"
 ARGS=("${ARGS[@]:1}")
 
 case "$command" in
@@ -118,13 +128,19 @@ case "$command" in
     recent)     vokun::aliases::recent "${ARGS[@]}" ;;
     foreign)    vokun::aliases::foreign "${ARGS[@]}" ;;
     explicit)   vokun::aliases::explicit "${ARGS[@]}" ;;
+    broken)     vokun::aliases::broken ;;
 
     # AUR inspection
     check)      vokun::aur::check "${ARGS[@]}" ;;
     diff)       vokun::aur::diff "${ARGS[@]}" ;;
 
-    # Sync
+    # Sync & portability
     sync)       vokun::sync::run "${ARGS[@]}" ;;
+    export)     vokun::export::run "${ARGS[@]}" ;;
+    import)     vokun::export::import "${ARGS[@]}" ;;
+
+    # Automation
+    hook)       vokun::hook::dispatch "${ARGS[@]}" ;;
 
     # Help
     help)       vokun::core::help "${ARGS[@]}" ;;

@@ -69,6 +69,18 @@ degrade gracefully with a warning.
 
 ## First commands
 
+### Interactive mode
+
+The fastest way to explore vokun is to run it with no arguments:
+
+```bash
+vokun
+```
+
+This launches an interactive menu (powered by `fzf` when available) where you
+can browse bundles, install, remove, and access every command without memorizing
+subcommands.
+
 ### Browse bundles
 
 ```bash

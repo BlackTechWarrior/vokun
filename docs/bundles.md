@@ -7,7 +7,7 @@ nav_order: 4
 # Bundles
 
 A bundle is a TOML file that defines a group of packages organized around a
-task. Vokun ships with 19 default bundles and supports user-created custom
+task. Vokun ships with 24 default bundles and supports user-created custom
 bundles.
 
 ---

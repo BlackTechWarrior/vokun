@@ -5,7 +5,7 @@
 complete -c vokun -f
 
 # Subcommands
-set -l subcommands install remove list info search get yeet find which owns update orphans cache size recent foreign explicit help
+set -l subcommands install remove list info search get yeet find which owns update orphans cache size recent foreign explicit export import broken hook help
 
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a install  -d "Install a bundle"
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a remove   -d "Remove a bundle"
@@ -24,6 +24,10 @@ complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a size     
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a recent   -d "Show recently installed"
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a foreign  -d "List foreign packages"
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a explicit -d "List explicitly installed"
+complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a export   -d "Export custom bundles and config"
+complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a import   -d "Import bundles from a file"
+complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a broken   -d "Check for broken symlinks and deps"
+complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a hook     -d "Manage pacman notification hook"
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a help     -d "Show help"
 
 # Global flags
@@ -37,6 +41,15 @@ complete -c vokun -n "__fish_seen_subcommand_from info"    -a "(vokun list --nam
 
 # remove completes with installed bundle names
 complete -c vokun -n "__fish_seen_subcommand_from remove"  -a "(vokun list --names-only 2>/dev/null)" -d "Installed bundle"
+
+# export completes with --json flag
+complete -c vokun -n "__fish_seen_subcommand_from export"  -l json -d "Export in JSON format"
+
+# import completes with --dry flag
+complete -c vokun -n "__fish_seen_subcommand_from import"  -l dry  -d "Preview changes without applying"
+
+# hook completes with install and remove subcommands
+complete -c vokun -n "__fish_seen_subcommand_from hook"    -a "install remove" -d "Hook action"
 
 # help completes with subcommand names
 complete -c vokun -n "__fish_seen_subcommand_from help"    -a "$subcommands" -d "Subcommand"

@@ -17,7 +17,7 @@ declare -g VOKUN_COLOR_RESET=""
 
 vokun::core::setup_colors() {
     # Respect NO_COLOR (https://no-color.org/) and --no-color flag
-    if [[ -z "${NO_COLOR:-}" && "${VOKUN_NO_COLOR:-}" != "true" ]]; then
+    if [[ -t 1 ]] && [[ -z "${NO_COLOR:-}" && "${VOKUN_NO_COLOR:-}" != "true" ]]; then
         VOKUN_COLOR_RED=$'\033[0;31m'
         VOKUN_COLOR_GREEN=$'\033[0;32m'
         VOKUN_COLOR_YELLOW=$'\033[1;33m'
@@ -243,6 +243,8 @@ ${VOKUN_COLOR_BOLD}BUNDLE COMMANDS${VOKUN_COLOR_RESET}
     ${VOKUN_COLOR_GREEN}search${VOKUN_COLOR_RESET}  <keyword>        Search bundles by name, tag, or package
     ${VOKUN_COLOR_GREEN}bundle${VOKUN_COLOR_RESET}  <action>         Manage bundles ${VOKUN_COLOR_DIM}(create, add, rm, edit, delete)${VOKUN_COLOR_RESET}
     ${VOKUN_COLOR_GREEN}sync${VOKUN_COLOR_RESET}                     Detect packages not tracked in any bundle
+    ${VOKUN_COLOR_GREEN}export${VOKUN_COLOR_RESET}  [file]           Export custom bundles and config
+    ${VOKUN_COLOR_GREEN}import${VOKUN_COLOR_RESET}  <file>           Import bundles from a file
 
 ${VOKUN_COLOR_BOLD}PACKAGE COMMANDS${VOKUN_COLOR_RESET}
     ${VOKUN_COLOR_CYAN}get${VOKUN_COLOR_RESET}     <pkg>            Install a package ${VOKUN_COLOR_DIM}(pacman -S)${VOKUN_COLOR_RESET}
@@ -259,10 +261,15 @@ ${VOKUN_COLOR_BOLD}MAINTENANCE${VOKUN_COLOR_RESET}
     ${VOKUN_COLOR_YELLOW}recent${VOKUN_COLOR_RESET}                   Show recently installed packages
     ${VOKUN_COLOR_YELLOW}foreign${VOKUN_COLOR_RESET}                  List AUR/foreign packages
     ${VOKUN_COLOR_YELLOW}explicit${VOKUN_COLOR_RESET}                 List explicitly installed packages
+    ${VOKUN_COLOR_YELLOW}broken${VOKUN_COLOR_RESET}                   Check for broken symlinks and missing deps
     ${VOKUN_COLOR_YELLOW}check${VOKUN_COLOR_RESET}   <pkg>            Check AUR package trust and integrity
     ${VOKUN_COLOR_YELLOW}diff${VOKUN_COLOR_RESET}    <pkg>            Show AUR package PKGBUILD
 
+${VOKUN_COLOR_BOLD}AUTOMATION${VOKUN_COLOR_RESET}
+    ${VOKUN_COLOR_MAGENTA}hook${VOKUN_COLOR_RESET}    <action>         Manage pacman hook ${VOKUN_COLOR_DIM}(install, remove)${VOKUN_COLOR_RESET}
+
 ${VOKUN_COLOR_BOLD}OPTIONS${VOKUN_COLOR_RESET}
+    --dry-run                Show what would happen without doing it
     --yes, -y                Skip confirmation prompts
     --no-color               Disable colored output
     --help, -h               Show this help
@@ -512,6 +519,46 @@ ${VOKUN_COLOR_BOLD}vokun diff${VOKUN_COLOR_RESET} <package>
 Show the PKGBUILD for an AUR package for manual review.
 EOF
             ;;
+        export)
+            cat <<EOF
+${VOKUN_COLOR_BOLD}vokun export${VOKUN_COLOR_RESET} [file] [--json]
+
+Export custom bundles, state, and config to a portable file.
+Default output: ./vokun-export.tar.gz
+
+${VOKUN_COLOR_BOLD}Flags:${VOKUN_COLOR_RESET}
+    --json    Export as JSON instead of tarball
+EOF
+            ;;
+        import)
+            cat <<EOF
+${VOKUN_COLOR_BOLD}vokun import${VOKUN_COLOR_RESET} <file> [--dry]
+
+Import bundles from a previously exported file (.tar.gz or .json).
+
+${VOKUN_COLOR_BOLD}Flags:${VOKUN_COLOR_RESET}
+    --dry    Preview what would be imported without making changes
+EOF
+            ;;
+        broken)
+            cat <<EOF
+${VOKUN_COLOR_BOLD}vokun broken${VOKUN_COLOR_RESET}
+
+Check system integrity: broken symlinks, missing dependencies, and
+packages with missing files.
+EOF
+            ;;
+        hook)
+            cat <<EOF
+${VOKUN_COLOR_BOLD}vokun hook${VOKUN_COLOR_RESET} <action>
+
+Manage the pacman hook that notifies about untracked packages.
+
+${VOKUN_COLOR_BOLD}Actions:${VOKUN_COLOR_RESET}
+    install    Install the pacman hook (requires sudo)
+    remove     Remove the pacman hook (requires sudo)
+EOF
+            ;;
         *)
             vokun::core::error "Unknown command: $cmd"
             vokun::core::log "Run 'vokun help' for a list of commands."
@@ -528,9 +575,10 @@ vokun::core::unknown() {
     vokun::core::log ""
     vokun::core::log "Available commands:"
     vokun::core::log "  install, remove, list, info, search, bundle, sync"
+    vokun::core::log "  export, import"
     vokun::core::log "  get, yeet, find, which, owns, update"
     vokun::core::log "  orphans, cache, size, recent, foreign, explicit"
-    vokun::core::log "  check, diff"
+    vokun::core::log "  broken, check, diff, hook"
     vokun::core::log ""
     vokun::core::log "Run 'vokun help' for more information."
     return 1

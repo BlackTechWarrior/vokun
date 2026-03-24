@@ -69,10 +69,12 @@ vokun::sync::get_pkg_repo() {
 
 vokun::sync::run() {
     local auto_mode=false
+    local quiet_mode=false
 
     for arg in "$@"; do
         case "$arg" in
             --auto) auto_mode=true ;;
+            --quiet) quiet_mode=true; auto_mode=true ;;
         esac
     done
 
@@ -114,6 +116,14 @@ vokun::sync::run() {
             untracked+=("$pkg")
         fi
     done
+
+    # Quiet mode: just print count and exit
+    if [[ "$quiet_mode" == true ]]; then
+        if [[ ${#untracked[@]} -gt 0 ]]; then
+            printf 'vokun: %d untracked package(s). Run '\''vokun sync'\'' to manage them.\n' "${#untracked[@]}"
+        fi
+        return 0
+    fi
 
     # Report
     printf '\n'

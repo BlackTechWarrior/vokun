@@ -28,6 +28,10 @@ _vokun() {
         'recent:Show recently installed'
         'foreign:List foreign packages'
         'explicit:List explicitly installed'
+        'export:Export custom bundles and config'
+        'import:Import bundles from a file'
+        'broken:Check for broken symlinks and deps'
+        'hook:Manage pacman notification hook'
         'help:Show help'
     )
 
@@ -50,12 +54,24 @@ _vokun() {
                 remove)
                     _vokun_bundle_names
                     ;;
+                export)
+                    _arguments '--json[Export in JSON format]'
+                    ;;
+                import)
+                    _arguments '--dry[Preview changes without applying]'
+                    ;;
+                hook)
+                    local -a hook_cmds
+                    hook_cmds=('install:Install the pacman hook' 'remove:Remove the pacman hook')
+                    _describe -t hook-cmds 'hook subcommand' hook_cmds
+                    ;;
                 help)
                     local -a help_topics
                     help_topics=(
                         'install' 'remove' 'list' 'info' 'search' 'get'
                         'yeet' 'find' 'which' 'owns' 'update' 'orphans'
-                        'cache' 'size' 'recent' 'foreign' 'explicit' 'help'
+                        'cache' 'size' 'recent' 'foreign' 'explicit'
+                        'export' 'import' 'broken' 'hook' 'help'
                     )
                     _describe -t help-topics 'subcommand' help_topics
                     ;;

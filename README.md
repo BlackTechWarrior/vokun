@@ -32,6 +32,7 @@ Skyrim. It has zero namespace collisions in the CLI/package tool space.
 ```bash
 git clone https://github.com/blacktechwarrior/vokun.git
 cd vokun && sudo make install
+vokun                    # Launch interactive mode
 vokun list               # Browse available bundles
 vokun install sysadmin   # Install the sysadmin toolkit
 ```
@@ -105,6 +106,25 @@ vokun size                      # List packages sorted by installed size
 vokun recent                    # Show recently installed packages
 vokun foreign                   # List AUR/foreign packages
 vokun explicit                  # List explicitly installed packages
+vokun broken                    # Check for broken symlinks and deps
+```
+
+### Portability
+
+```bash
+vokun export                    # Export custom bundles and config (TOML)
+vokun export --json             # Export in JSON format
+vokun import <file>             # Import bundles from a file
+vokun import <file> --dry       # Preview import without applying
+```
+
+### Automation
+
+```bash
+vokun hook install              # Install pacman notification hook
+vokun hook install --dry-run    # Preview without changes
+vokun hook remove               # Remove the hook
+vokun hook remove  --dry-run    # Preview removal
 ```
 
 ### Example output
