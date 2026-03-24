@@ -147,6 +147,16 @@ tr {
 
 .site-title {
   color: $heading-text;
+  margin-bottom: 0.4em;
+}
+
+.site-header {
+  padding-bottom: 0;
+}
+
+.nav-list {
+  padding-top: 0;
+  margin-top: 0;
 }
 
 .nav-list .nav-list-item {
@@ -155,7 +165,8 @@ tr {
 
   .nav-list-link {
     color: $sidebar-inactive;
-    padding: 0.5em 1em;
+    padding: 0.3em 1em;
+    line-height: 1.4;
     transition: color 0.2s ease, border-color 0.2s ease;
     border-left: 3px solid transparent;
 
@@ -173,9 +184,9 @@ tr {
   }
 }
 
-// More spacing between nav items
+// No extra spacing between nav items — compact list
 .nav-list .nav-list-item + .nav-list-item {
-  margin-top: 0.15em;
+  margin-top: 0;
 }
 
 // ── Main content ──
