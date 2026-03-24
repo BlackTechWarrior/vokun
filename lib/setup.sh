@@ -172,7 +172,17 @@ vokun::setup::uninstall() {
         if [[ -n "$aur_helper" ]]; then
             printf '    %s# or: %s -Rns vokun%s\n' "$VOKUN_COLOR_DIM" "$aur_helper" "$VOKUN_COLOR_RESET"
         fi
-        printf '\n  Removing files manually would corrupt pacman'\''s database.\n\n'
+        printf '\n  Removing files manually would corrupt pacman'\''s database.\n'
+
+        # Hint about AUR build cache
+        local cache_dir="${HOME}/.cache/${aur_helper:-paru}/clone/vokun"
+        if [[ -d "$cache_dir" ]]; then
+            printf '\n  %sAUR build cache exists at:%s\n' "$VOKUN_COLOR_DIM" "$VOKUN_COLOR_RESET"
+            printf '    %s\n\n' "$cache_dir"
+            printf '  Clean it with: %srm -rf %s%s\n' "$VOKUN_COLOR_BOLD" "$cache_dir" "$VOKUN_COLOR_RESET"
+            printf '  Or clear all AUR cache: %s%s -Scc%s\n\n' "$VOKUN_COLOR_BOLD" "${aur_helper:-paru}" "$VOKUN_COLOR_RESET"
+        fi
+
         return 0
     fi
 
