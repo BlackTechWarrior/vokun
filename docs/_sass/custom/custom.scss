@@ -57,10 +57,11 @@ code {
 // ── Code blocks ──
 
 pre {
-  background-color: $code-bg !important;
+  background-color: transparent !important;
   border: 1px solid $border-color;
   border-radius: 8px;
   padding: 1em 1.2em;
+  overflow-x: auto;
 
   code {
     font-size: 14px;
@@ -75,15 +76,22 @@ pre {
 // Override any theme highlight / rouge wrapper
 div.highlighter-rouge,
 figure.highlight {
-  background-color: $code-bg !important;
+  background-color: transparent !important;
   border: 1px solid $border-color;
   border-radius: 8px;
+  overflow-x: auto;
 
   pre {
     border: none;
     border-radius: 0;
     margin: 0;
+    background-color: transparent !important;
   }
+}
+
+// Kill any leftover highlight backgrounds
+.highlight {
+  background-color: transparent !important;
 }
 
 // ── Tables ──
