@@ -41,6 +41,7 @@ sudo make install
 | `lib/*.sh` | `/usr/local/share/vokun/lib/` |
 | `bundles/*.toml` | `/usr/local/share/vokun/bundles/` |
 | `completions/vokun.bash` | `/usr/local/share/bash-completion/completions/vokun` |
+| `completions/_vokun` | `/usr/local/share/zsh/site-functions/_vokun` |
 | `completions/vokun.fish` | `/usr/local/share/fish/vendor_completions.d/vokun.fish` |
 
 To uninstall: `sudo make uninstall`.

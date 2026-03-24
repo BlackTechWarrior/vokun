@@ -29,7 +29,7 @@ regular system packages with no lock-in.
 - **Custom bundles** -- define your own in a simple TOML file.
 - **Friendly aliases** -- `vokun get`, `vokun yeet`, `vokun update` instead
   of memorizing pacman flags.
-- **Tab completion** -- Bash and Fish completions ship out of the box.
+- **Tab completion** -- Bash, Zsh, and Fish completions ship out of the box.
 
 ---
 
