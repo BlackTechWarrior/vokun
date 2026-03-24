@@ -188,11 +188,11 @@ vokun::snapshot::diff() {
 
     # Packages added since snapshot
     local added
-    added=$(comm -13 <(echo "$snapshot_pkgs") <(echo "$current_pkgs"))
+    added=$(comm -13 <(printf '%s\n' "$snapshot_pkgs") <(printf '%s\n' "$current_pkgs") | sed '/^$/d')
 
     # Packages removed since snapshot
     local removed
-    removed=$(comm -23 <(echo "$snapshot_pkgs") <(echo "$current_pkgs"))
+    removed=$(comm -23 <(printf '%s\n' "$snapshot_pkgs") <(printf '%s\n' "$current_pkgs") | sed '/^$/d')
 
     printf '\n%sSnapshot diff: %s%s\n' "$VOKUN_COLOR_BOLD" "$name" "$VOKUN_COLOR_RESET"
     local timestamp=""
@@ -229,8 +229,8 @@ vokun::snapshot::diff() {
         snapshot_bundles=$(jq -r '.installed_bundles | keys[]' "${snapshot_dir}/state.json" 2>/dev/null | sort)
 
         local bundles_added bundles_removed
-        bundles_added=$(comm -13 <(echo "$snapshot_bundles") <(echo "$current_bundles"))
-        bundles_removed=$(comm -23 <(echo "$snapshot_bundles") <(echo "$current_bundles"))
+        bundles_added=$(comm -13 <(printf '%s\n' "$snapshot_bundles") <(printf '%s\n' "$current_bundles") | sed '/^$/d')
+        bundles_removed=$(comm -23 <(printf '%s\n' "$snapshot_bundles") <(printf '%s\n' "$current_bundles") | sed '/^$/d')
 
         if [[ -n "$bundles_added" || -n "$bundles_removed" ]]; then
             has_changes=true
@@ -295,11 +295,11 @@ vokun::snapshot::restore() {
 
     # Packages to install (in snapshot but not current)
     local to_install
-    to_install=$(comm -23 <(echo "$snapshot_pkgs") <(echo "$current_pkgs"))
+    to_install=$(comm -23 <(printf '%s\n' "$snapshot_pkgs") <(printf '%s\n' "$current_pkgs") | sed '/^$/d')
 
     # Packages to remove (in current but not snapshot)
     local to_remove
-    to_remove=$(comm -13 <(echo "$snapshot_pkgs") <(echo "$current_pkgs"))
+    to_remove=$(comm -13 <(printf '%s\n' "$snapshot_pkgs") <(printf '%s\n' "$current_pkgs") | sed '/^$/d')
 
     printf '\n%sRestore snapshot: %s%s\n' "$VOKUN_COLOR_BOLD" "$name" "$VOKUN_COLOR_RESET"
     printf '%s\n' "$(printf '%.0s─' {1..50})"

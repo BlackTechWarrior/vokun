@@ -122,6 +122,7 @@ vokun::why::untracked() {
     while IFS='|' read -r timestamp action target details profile; do
         if [[ "$action" == "get" ]]; then
             local word
+            # shellcheck disable=SC2086
             for word in $target; do
                 [[ -n "$word" ]] && got_packages["$word"]=1
             done

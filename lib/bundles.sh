@@ -88,7 +88,11 @@ vokun::bundles::load_with_extends() {
     local child_name
     child_name=$(vokun::bundles::name_from_path "$file")
     for p in "${parent_names[@]}"; do
-        if vokun::core::in_array "$p" "${_extends_chain[@]}" 2>/dev/null || [[ "$p" == "$child_name" ]]; then
+        if [[ "$p" == "$child_name" ]]; then
+            vokun::core::error "Cycle detected in extends: $child_name -> $p"
+            return 1
+        fi
+        if [[ ${#_extends_chain[@]} -gt 0 ]] && vokun::core::in_array "$p" "${_extends_chain[@]}"; then
             vokun::core::error "Cycle detected in extends: ${_extends_chain[*]} -> $child_name -> $p"
             return 1
         fi
@@ -829,7 +833,7 @@ vokun::bundles::install() {
     fi
 
     # Run pre-install hooks
-    if ! vokun::bundles::_run_hooks "pre_install" "$dry_run"; then
+    if ! vokun::bundles::_run_hooks "pre_install" false; then
         vokun::core::error "Pre-install hook failed. Installation aborted."
         return 1
     fi

@@ -82,7 +82,7 @@ vokun::doctor::run() {
             [[ -z "$pkg" ]] && continue
             if ! echo "$tracked_pkgs" | grep -qx "$pkg" && \
                ! echo "$unmanaged_pkgs" | grep -qx "$pkg"; then
-                ((drift_count++))
+                drift_count=$((drift_count + 1))
             fi
         done <<< "$explicit_pkgs"
 
@@ -102,7 +102,7 @@ vokun::doctor::run() {
             while IFS= read -r pkg; do
                 [[ -z "$pkg" ]] && continue
                 if ! vokun::core::is_pkg_installed "$pkg"; then
-                    ((reverse_count++))
+                    reverse_count=$((reverse_count + 1))
                 fi
             done <<< "$bundle_pkgs"
         done
@@ -208,7 +208,7 @@ vokun::doctor::run() {
 
             local untracked_count=0
             for pkg in "${!got_packages[@]}"; do
-                [[ ! -v "all_bundle_pkgs[$pkg]" ]] && ((untracked_count++))
+                [[ ! -v "all_bundle_pkgs[$pkg]" ]] && untracked_count=$((untracked_count + 1))
             done
 
             if [[ $untracked_count -gt 0 ]]; then
