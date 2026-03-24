@@ -48,6 +48,80 @@ vokun::bundles::find_by_name() {
     return 1
 }
 
+# Load a bundle's packages, resolving the extends chain
+# After calling this, TOML_DATA/TOML_SECTION_KEYS contain the merged result
+# Usage: vokun::bundles::load_with_extends "/path/to/bundle.toml"
+vokun::bundles::load_with_extends() {
+    local file="$1"
+
+    vokun::toml::parse "$file"
+
+    local extends
+    extends=$(vokun::toml::get "meta.extends" "")
+
+    if [[ -z "$extends" ]]; then
+        return 0
+    fi
+
+    # Find the parent bundle
+    local parent_file
+    parent_file=$(vokun::bundles::find_by_name "$extends" 2>/dev/null) || {
+        vokun::core::warn "Parent bundle '$extends' not found (referenced by extends)"
+        return 0
+    }
+
+    # Save current child data
+    local -A child_data=()
+    local -A child_keys=()
+    local key
+    for key in "${!TOML_DATA[@]}"; do
+        child_data["$key"]="${TOML_DATA[$key]}"
+    done
+    for key in "${!TOML_SECTION_KEYS[@]}"; do
+        child_keys["$key"]="${TOML_SECTION_KEYS[$key]}"
+    done
+
+    # Parse parent (recursively resolves its own extends)
+    vokun::bundles::load_with_extends "$parent_file"
+
+    # Merge: child overrides parent for meta, child packages ADD to parent packages
+    # Restore child meta fields (they take priority)
+    for key in "${!child_data[@]}"; do
+        if [[ "$key" == meta.* ]]; then
+            TOML_DATA["$key"]="${child_data[$key]}"
+        fi
+    done
+
+    # Merge packages: parent packages are the base, child adds on top
+    local section
+    for section in "packages" "packages.aur" "packages.optional"; do
+        local child_section_keys="${child_keys[$section]:-}"
+        if [[ -n "$child_section_keys" ]]; then
+            while IFS= read -r pkg; do
+                [[ -z "$pkg" ]] && continue
+                # Add child's package data
+                TOML_DATA["${section}.${pkg}"]="${child_data["${section}.${pkg}"]:-}"
+                # Add to section keys if not already there
+                local existing_keys="${TOML_SECTION_KEYS[$section]:-}"
+                if ! echo "$existing_keys" | grep -qx "$pkg"; then
+                    if [[ -n "$existing_keys" ]]; then
+                        TOML_SECTION_KEYS["$section"]+=$'\n'"$pkg"
+                    else
+                        TOML_SECTION_KEYS["$section"]="$pkg"
+                    fi
+                fi
+            done <<< "$child_section_keys"
+        fi
+    done
+
+    # Restore child hooks (child hooks replace parent hooks)
+    for key in "${!child_data[@]}"; do
+        if [[ "$key" == hooks.* ]]; then
+            TOML_DATA["$key"]="${child_data[$key]}"
+        fi
+    done
+}
+
 # --- vokun list ---
 
 vokun::bundles::list() {
@@ -151,12 +225,13 @@ vokun::bundles::info() {
         return 1
     }
 
-    vokun::toml::parse "$file"
+    vokun::bundles::load_with_extends "$file"
 
-    local description version tags_str
+    local description version tags_str extends
     description=$(vokun::toml::get "meta.description" "No description")
     version=$(vokun::toml::get "meta.version" "")
     tags_str=$(vokun::toml::get "meta.tags" "")
+    extends=$(vokun::toml::get "meta.extends" "")
 
     # Header
     printf '\n'
@@ -172,6 +247,10 @@ vokun::bundles::info() {
         local tags_display
         tags_display=$(echo "$tags_str" | tr '\n' ', ' | sed 's/,$//')
         printf '%sTags: %s%s\n' "$VOKUN_COLOR_DIM" "$tags_display" "$VOKUN_COLOR_RESET"
+    fi
+
+    if [[ -n "$extends" ]]; then
+        printf '%sExtends: %s%s\n' "$VOKUN_COLOR_DIM" "$extends" "$VOKUN_COLOR_RESET"
     fi
 
     printf '%s\n' "$(printf '%.0s─' {1..50})"
@@ -354,7 +433,7 @@ vokun::bundles::install() {
         return 0
     fi
 
-    vokun::toml::parse "$file"
+    vokun::bundles::load_with_extends "$file"
 
     local description
     description=$(vokun::toml::get "meta.description" "")

@@ -92,6 +92,17 @@ vokun::bundle_mgmt::create() {
     read -r description
     [[ -z "$description" ]] && description="Custom bundle"
 
+    # Ask for extends (optional)
+    printf 'Extends bundle (optional, enter to skip): '
+    local extends_input
+    read -r extends_input
+
+    if [[ -n "$extends_input" ]]; then
+        if ! vokun::bundles::find_by_name "$extends_input" &>/dev/null; then
+            vokun::core::warn "Bundle '$extends_input' not found — extends will not resolve"
+        fi
+    fi
+
     # Ask for tags
     printf 'Tags (comma-separated): '
     local tags_input
@@ -122,15 +133,17 @@ vokun::bundle_mgmt::create() {
     fi
 
     # Write initial TOML
-    cat > "$bundle_file" <<EOF
-[meta]
-name = "${name}"
-description = "${description}"
-tags = ${tags_toml}
-version = "1.0.0"
-
-[packages]
-EOF
+    {
+        printf '[meta]\n'
+        printf 'name = "%s"\n' "$name"
+        printf 'description = "%s"\n' "$description"
+        printf 'tags = %s\n' "$tags_toml"
+        printf 'version = "1.0.0"\n'
+        if [[ -n "$extends_input" ]]; then
+            printf 'extends = "%s"\n' "$extends_input"
+        fi
+        printf '\n[packages]\n'
+    } > "$bundle_file"
 
     # Optionally select packages with fzf
     if command -v fzf &>/dev/null && [[ "${VOKUN_FZF:-true}" == "true" ]]; then

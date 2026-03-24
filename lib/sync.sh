@@ -205,6 +205,9 @@ vokun::sync::run() {
         printf '\n'
     fi
 
+    # Bundle drift detection
+    vokun::sync::check_drift "$auto_mode"
+
     if [[ ${#untracked[@]} -eq 0 && ${#missing_from_system[@]} -eq 0 ]]; then
         printf '\n'
         vokun::core::success "Everything is in sync!"
@@ -380,4 +383,164 @@ vokun::sync::_remove_missing_from_state() {
             vokun::core::success "Removed ${#removed[@]} missing package(s) from '$bundle': ${removed[*]}"
         fi
     done
+}
+
+# --- Bundle drift detection ---
+# Compare installed bundles' state against current TOML definitions
+# Finds packages added or removed upstream since the bundle was installed
+
+vokun::sync::check_drift() {
+    local auto_mode="${1:-false}"
+
+    local -a bundle_names
+    mapfile -t bundle_names < <(vokun::state::get_installed_bundles)
+
+    if [[ ${#bundle_names[@]} -eq 0 ]]; then
+        return
+    fi
+
+    local has_drift=false
+    local -A bundles_with_new=()
+    local -A bundles_with_removed=()
+
+    for bundle in "${bundle_names[@]}"; do
+        [[ -z "$bundle" ]] && continue
+
+        # Get what's in state
+        local -a state_pkgs
+        mapfile -t state_pkgs < <(vokun::state::get_bundle_packages "$bundle")
+        local -A state_set=()
+        for p in "${state_pkgs[@]}"; do
+            [[ -n "$p" ]] && state_set["$p"]=1
+        done
+
+        # Get skipped packages from state too — don't flag those as "new"
+        local -A skipped_set=()
+        local skipped_raw
+        skipped_raw=$(jq -r --arg b "$bundle" '.installed_bundles[$b].skipped[]? // empty' "$VOKUN_STATE_FILE" 2>/dev/null || true)
+        while IFS= read -r p; do
+            [[ -n "$p" ]] && skipped_set["$p"]=1
+        done <<< "$skipped_raw"
+
+        # Find the current TOML definition
+        local file
+        file=$(vokun::bundles::find_by_name "$bundle" 2>/dev/null) || continue
+
+        # Parse the TOML and get all defined packages
+        vokun::toml::parse "$file"
+        local -A toml_set=()
+        local keys
+        keys=$(vokun::toml::keys "packages")
+        while IFS= read -r p; do
+            [[ -n "$p" ]] && toml_set["$p"]=1
+        done <<< "$keys"
+        keys=$(vokun::toml::keys "packages.aur")
+        while IFS= read -r p; do
+            [[ -n "$p" ]] && toml_set["$p"]=1
+        done <<< "$keys"
+
+        # Find new packages (in TOML but not in state and not skipped)
+        local -a new_pkgs=()
+        for p in "${!toml_set[@]}"; do
+            if [[ ! -v "state_set[$p]" && ! -v "skipped_set[$p]" ]]; then
+                new_pkgs+=("$p")
+            fi
+        done
+
+        # Find removed packages (in state but not in TOML)
+        local -a removed_pkgs=()
+        for p in "${!state_set[@]}"; do
+            if [[ ! -v "toml_set[$p]" ]]; then
+                removed_pkgs+=("$p")
+            fi
+        done
+
+        if [[ ${#new_pkgs[@]} -gt 0 ]]; then
+            has_drift=true
+            bundles_with_new["$bundle"]="${new_pkgs[*]}"
+        fi
+        if [[ ${#removed_pkgs[@]} -gt 0 ]]; then
+            has_drift=true
+            bundles_with_removed["$bundle"]="${removed_pkgs[*]}"
+        fi
+    done
+
+    if [[ "$has_drift" == false ]]; then
+        return
+    fi
+
+    printf '\n  %sBundle definition changes detected:%s\n' "$VOKUN_COLOR_CYAN" "$VOKUN_COLOR_RESET"
+
+    for bundle in "${!bundles_with_new[@]}"; do
+        printf '\n    %s[%s]%s new packages available:\n' "$VOKUN_COLOR_MAGENTA" "$bundle" "$VOKUN_COLOR_RESET"
+        # shellcheck disable=SC2086
+        for p in ${bundles_with_new[$bundle]}; do
+            printf '      %s+ %s%s\n' "$VOKUN_COLOR_GREEN" "$p" "$VOKUN_COLOR_RESET"
+        done
+    done
+
+    for bundle in "${!bundles_with_removed[@]}"; do
+        printf '\n    %s[%s]%s packages removed from definition:\n' "$VOKUN_COLOR_MAGENTA" "$bundle" "$VOKUN_COLOR_RESET"
+        # shellcheck disable=SC2086
+        for p in ${bundles_with_removed[$bundle]}; do
+            printf '      %s- %s%s\n' "$VOKUN_COLOR_RED" "$p" "$VOKUN_COLOR_RESET"
+        done
+    done
+
+    if [[ "$auto_mode" == true ]]; then
+        return
+    fi
+
+    # Offer to update
+    if [[ ${#bundles_with_new[@]} -gt 0 ]]; then
+        printf '\n'
+        if vokun::core::confirm "Install new packages from updated bundles?"; then
+            for bundle in "${!bundles_with_new[@]}"; do
+                local -a new_list
+                # shellcheck disable=SC2086
+                read -ra new_list <<< "${bundles_with_new[$bundle]}"
+                vokun::core::run_pacman "-S" "--needed" "${new_list[@]}"
+                # Update state with the new packages
+                local current_pkgs
+                current_pkgs=$(vokun::state::get_bundle_packages "$bundle" | tr '\n' ' ')
+                vokun::state::add_bundle "$bundle" "${current_pkgs}${new_list[*]} " "" "default"
+            done
+        fi
+    fi
+
+    if [[ ${#bundles_with_removed[@]} -gt 0 ]]; then
+        printf '\n'
+        if vokun::core::confirm "Remove packages dropped from bundle definitions?"; then
+            for bundle in "${!bundles_with_removed[@]}"; do
+                local -a rm_list
+                # shellcheck disable=SC2086
+                read -ra rm_list <<< "${bundles_with_removed[$bundle]}"
+                # Only remove if not in another bundle
+                local -a safe_to_remove=()
+                for p in "${rm_list[@]}"; do
+                    local shared
+                    shared=$(vokun::state::get_shared_packages "$bundle" "$p")
+                    if [[ -z "$shared" ]]; then
+                        safe_to_remove+=("$p")
+                    fi
+                done
+                if [[ ${#safe_to_remove[@]} -gt 0 ]]; then
+                    vokun::core::run_pacman_only "-Rns" "${safe_to_remove[@]}"
+                fi
+                # Update state
+                local -a kept=()
+                local -a current
+                mapfile -t current < <(vokun::state::get_bundle_packages "$bundle")
+                for p in "${current[@]}"; do
+                    [[ -z "$p" ]] && continue
+                    if ! vokun::core::in_array "$p" "${rm_list[@]}"; then
+                        kept+=("$p")
+                    fi
+                done
+                local kept_str
+                kept_str=$(printf '%s ' "${kept[@]}")
+                vokun::state::add_bundle "$bundle" "$kept_str" "" "default"
+            done
+        fi
+    fi
 }
