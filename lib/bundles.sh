@@ -1205,8 +1205,22 @@ vokun::bundles::remove() {
     fi
 
     vokun::core::run_pacman_only "-Rns" "${unique_pkgs[@]}" || {
-        vokun::core::error "Some packages failed to remove"
-        return 1
+        vokun::core::warn "Some packages could not be removed (likely dependency conflicts)."
+        printf '\n  Untrack bundle from vokun without removing packages? [Y/n] '
+        local untrack_reply
+        read -r untrack_reply
+        case "$untrack_reply" in
+            [nN]|[nN][oO])
+                vokun::core::log "Removal cancelled."
+                return 1
+                ;;
+        esac
+        vokun::core::log_action "bundle-untrack" "$name" "untracked (packages kept)"
+        vokun::state::remove_bundle "$name"
+        printf '\n'
+        vokun::core::success "Bundle '$name' untracked. Packages left on system."
+        vokun::core::log "  Use 'vokun yeet <pkg>' to remove individual packages."
+        return 0
     }
 
     # Run post-remove hooks
