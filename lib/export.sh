@@ -256,6 +256,33 @@ vokun::export::import() {
     esac
 }
 
+# Scan a directory of TOML bundles for post_install hooks and warn
+vokun::export::_warn_hooks() {
+    local bundle_dir="$1"
+    [[ -d "$bundle_dir" ]] || return 0
+
+    local -a with_hooks=()
+    local f
+    for f in "$bundle_dir"/*; do
+        [[ -f "$f" ]] || continue
+        if grep -q 'post_install' "$f"; then
+            with_hooks+=("$(basename "$f")")
+        fi
+    done
+
+    if [[ ${#with_hooks[@]} -gt 0 ]]; then
+        printf '\n'
+        vokun::core::warn "Imported bundles contain post_install hooks."
+        vokun::core::warn "These commands will execute on your system when installed:"
+        printf '\n'
+        for bfile in "${with_hooks[@]}"; do
+            printf '  %s%s:%s\n' "$VOKUN_COLOR_YELLOW" "$bfile" "$VOKUN_COLOR_RESET"
+            grep -A 10 'post_install' "${bundle_dir}/${bfile}" | grep '"' | sed 's/.*"\(.*\)".*/    \1/' || true
+        done
+        printf '\n'
+    fi
+}
+
 vokun::export::_import_tar() {
     local input_file="$1"
     local dry_run="$2"
@@ -306,6 +333,9 @@ vokun::export::_import_tar() {
     if [[ ${#conflict_bundles[@]} -gt 0 ]]; then
         vokun::core::warn "${#conflict_bundles[@]} bundle(s) already exist and will be overwritten."
     fi
+
+    # Hook safety: scan imported bundles for post_install hooks
+    vokun::export::_warn_hooks "${tmp_dir}/bundles/custom"
 
     if [[ "$dry_run" == true ]]; then
         vokun::core::info "Dry run — no changes made."
@@ -420,6 +450,26 @@ vokun::export::_import_json() {
 
     if [[ ${#conflict_bundles[@]} -gt 0 ]]; then
         vokun::core::warn "${#conflict_bundles[@]} bundle(s) already exist and will be overwritten."
+    fi
+
+    # Hook safety: check JSON bundles for post_install hooks
+    local hooks_found=false
+    for bname in "${bundle_names[@]}"; do
+        local hook_cmds
+        hook_cmds=$(jq -r --arg b "$bname" '.bundles[$b] // "" | select(contains("post_install"))' "$input_file" 2>/dev/null || true)
+        if [[ -n "$hook_cmds" ]]; then
+            if [[ "$hooks_found" == false ]]; then
+                printf '\n'
+                vokun::core::warn "Imported bundles contain post_install hooks."
+                vokun::core::warn "These commands will execute on your system when installed."
+                printf '\n'
+                hooks_found=true
+            fi
+            printf '  %s%s%s contains hooks\n' "$VOKUN_COLOR_YELLOW" "$bname" "$VOKUN_COLOR_RESET"
+        fi
+    done
+    if [[ "$hooks_found" == true ]]; then
+        printf '\n'
     fi
 
     if [[ "$dry_run" == true ]]; then
