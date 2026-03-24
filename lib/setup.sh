@@ -162,6 +162,20 @@ vokun::setup::uninstall() {
     printf '\n%sVokun Uninstall%s\n' "$VOKUN_COLOR_BOLD" "$VOKUN_COLOR_RESET"
     printf '%s\n\n' "$(printf '%.0s─' {1..50})"
 
+    # Check if vokun was installed via pacman (AUR package)
+    if pacman -Qi vokun &>/dev/null; then
+        vokun::core::info "Vokun was installed as a pacman/AUR package."
+        printf '\n  Uninstall it with your package manager instead:\n\n'
+        printf '    %ssudo pacman -Rns vokun%s\n' "$VOKUN_COLOR_BOLD" "$VOKUN_COLOR_RESET"
+        local aur_helper
+        aur_helper=$(vokun::core::get_aur_helper)
+        if [[ -n "$aur_helper" ]]; then
+            printf '    %s# or: %s -Rns vokun%s\n' "$VOKUN_COLOR_DIM" "$aur_helper" "$VOKUN_COLOR_RESET"
+        fi
+        printf '\n  Removing files manually would corrupt pacman'\''s database.\n\n'
+        return 0
+    fi
+
     # Detect where vokun is installed
     local vokun_bin
     vokun_bin=$(command -v vokun 2>/dev/null || true)
