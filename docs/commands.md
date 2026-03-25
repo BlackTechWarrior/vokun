@@ -364,14 +364,18 @@ Every command prints the underlying pacman invocation for transparency.
 ### vokun get
 
 ```
-vokun get <package> [package...]
+vokun get <package> [package...] [--overwrite]
 ```
 
 Install one or more packages. Uses paru/yay if available, otherwise pacman.
 When `auto_prompt` is enabled (the default), vokun prompts after a successful
 install to add the package to an existing bundle or create a new one.
 
-Equivalent to: `sudo pacman -S --needed <package>`
+| Flag | Description |
+|------|-------------|
+| `--overwrite` | Reinstall even if already installed, overwriting conflicting files |
+
+Equivalent to: `sudo pacman -S --needed <package>` (or `sudo pacman -S --overwrite '*' <package>` with `--overwrite`)
 
 ### vokun yeet
 

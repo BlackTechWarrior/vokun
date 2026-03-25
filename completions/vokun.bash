@@ -62,6 +62,11 @@ _vokun() {
                 COMPREPLY=( $(compgen -W "create add rm edit delete" -- "$cur") )
             fi
             ;;
+        get)
+            if [[ "$cur" == --* ]]; then
+                COMPREPLY=( $(compgen -W "--overwrite" -- "$cur") )
+            fi
+            ;;
         yeet)
             if [[ "$cur" == --* ]]; then
                 COMPREPLY=( $(compgen -W "--untrack" -- "$cur") )

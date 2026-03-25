@@ -86,6 +86,10 @@ _vokun() {
                 select)
                     _vokun_bundle_names
                     ;;
+                get)
+                    _arguments \
+                        '--overwrite[Reinstall and overwrite conflicting files]'
+                    ;;
                 yeet)
                     _arguments \
                         '--untrack[Remove from bundle tracking only]'

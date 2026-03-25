@@ -76,6 +76,9 @@ complete -c vokun -n "__fish_seen_subcommand_from remove"  -l dry-run  -d "Previ
 complete -c vokun -n "__fish_seen_subcommand_from remove"  -l untrack  -d "Remove from tracking only, keep packages"
 complete -c vokun -n "__fish_seen_subcommand_from remove"  -l all      -d "Remove all packages including pre-existing"
 
+# get completes with flags
+complete -c vokun -n "__fish_seen_subcommand_from get"    -l overwrite -d "Reinstall and overwrite conflicting files"
+
 # find completes with flags
 complete -c vokun -n "__fish_seen_subcommand_from find"    -l aur    -d "Include AUR results"
 complete -c vokun -n "__fish_seen_subcommand_from find"    -l pick   -d "Interactively select packages to install"

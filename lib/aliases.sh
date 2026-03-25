@@ -4,16 +4,30 @@
 
 # --- vokun get ---
 vokun::aliases::get() {
-    if [[ $# -eq 0 ]]; then
-        vokun::core::error "Usage: vokun get <package> [package...]"
+    local overwrite=false
+    local -a packages=()
+
+    for arg in "$@"; do
+        case "$arg" in
+            --overwrite) overwrite=true ;;
+            *) packages+=("$arg") ;;
+        esac
+    done
+
+    if [[ ${#packages[@]} -eq 0 ]]; then
+        vokun::core::error "Usage: vokun get <package> [package...] [--overwrite]"
         return 1
     fi
 
-    vokun::core::run_pacman "-S" "--needed" "$@"
+    if [[ "$overwrite" == true ]]; then
+        vokun::core::run_pacman "-S" "--overwrite" "*" "${packages[@]}"
+    else
+        vokun::core::run_pacman "-S" "--needed" "${packages[@]}"
+    fi
     local exit_code=$?
 
     if [[ $exit_code -eq 0 ]]; then
-        vokun::core::log_action "get" "$*" ""
+        vokun::core::log_action "get" "${packages[*]}" ""
     fi
 
     if [[ $exit_code -eq 0 && "${VOKUN_SYNC_AUTO_PROMPT:-true}" == "true" ]]; then
@@ -30,18 +44,18 @@ vokun::aliases::get() {
                 if [[ -n "$new_name" ]]; then
                     vokun::bundle_mgmt::create "$new_name"
                     # Add the packages to the new bundle
-                    vokun::bundle_mgmt::add "$new_name" "$@"
+                    vokun::bundle_mgmt::add "$new_name" "${packages[@]}"
                 fi
             elif vokun::state::is_installed "$reply"; then
                 # Bundle exists in state — add package to its state tracking
                 local current_pkgs
                 current_pkgs=$(vokun::state::get_bundle_packages "$reply" | tr '\n' ' ')
                 # shellcheck disable=SC2086
-                vokun::state::add_bundle "$reply" "${current_pkgs}$* " "" "default"
+                vokun::state::add_bundle "$reply" "${current_pkgs}${packages[*]} " "" "default"
                 vokun::core::success "Added to bundle '$reply'"
             elif vokun::bundles::find_by_name "$reply" &>/dev/null; then
                 # Bundle exists as a TOML file but isn't installed yet — add to the file
-                vokun::bundle_mgmt::add "$reply" "$@"
+                vokun::bundle_mgmt::add "$reply" "${packages[@]}"
                 vokun::core::success "Added to bundle '$reply'"
             else
                 vokun::core::warn "Bundle '$reply' not found."
@@ -52,7 +66,7 @@ vokun::aliases::get() {
                     [nN]|[nN][oO]) ;;
                     *)
                         vokun::bundle_mgmt::create "$reply"
-                        vokun::bundle_mgmt::add "$reply" "$@"
+                        vokun::bundle_mgmt::add "$reply" "${packages[@]}"
                         ;;
                 esac
             fi
