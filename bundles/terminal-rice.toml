@@ -35,4 +35,4 @@ tmux = "Terminal multiplexer for splitting panes, managing sessions, and persist
 oh-my-zsh-git = "Community-driven framework for managing Zsh configuration with plugins and themes"
 
 [hooks]
-post_install = ["echo 'Terminal setup installed. Add eval $(starship init bash) or equivalent to your shell rc.'"]
+post_install = ["echo 'Terminal setup installed. Add starship init to your shell rc for the prompt.'"]
