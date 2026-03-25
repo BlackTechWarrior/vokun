@@ -23,8 +23,9 @@ through vokun are standard system packages; there is no lock-in and no custom
 package format. You can mix `vokun install` with plain `pacman -S` freely, and
 use `vokun sync` later to reconcile the two.
 
-The name "vokun" means "shadow" in the dragon language from The Elder Scrolls V:
-Skyrim. It has zero namespace collisions in the CLI/package tool space.
+The name "vokun" (pronounced *voh-KOON*) means "shadow" in the dragon language
+from The Elder Scrolls V: Skyrim. It has zero namespace collisions in the
+CLI/package tool space.
 
 ---
 
@@ -77,8 +78,10 @@ vokun install <bundle> --exclude pkg1,pkg2  # Install everything except these pa
 vokun install <bundle> --only pkg1,pkg2     # Install only these packages from the bundle
 vokun install <bundle> --dry-run            # Preview what would be installed
 vokun rollback                              # Undo the last reversible action
-vokun remove  <bundle>                      # Remove packages unique to this bundle
-vokun remove  <bundle> --dry-run            # Preview what would be removed
+vokun remove  <bundle>                      # Remove only what vokun installed
+vokun remove  <bundle> --untrack            # Stop tracking, keep packages on system
+vokun remove  <bundle> --all               # Remove ALL packages including pre-existing
+vokun remove  bundle1 bundle2              # Remove multiple bundles
 vokun select  <bundle>                      # Change pick-one selections for a bundle
 vokun list                                  # List all available bundles
 vokun list --installed                      # List installed bundles only
@@ -95,6 +98,7 @@ packages. If conflicts are found, you are warned before proceeding.
 ```bash
 vokun get     <pkg>             # Install a package          (pacman -S)
 vokun yeet    <pkg>             # Remove with deps/configs   (pacman -Rns)
+vokun yeet    <pkg> --untrack   # Remove from bundle tracking only
 vokun find    <query>           # Search repos               (pacman -Ss)
 vokun find    <query> --aur     # Search repos + AUR
 vokun which   <pkg>             # Info on installed package   (pacman -Qi)

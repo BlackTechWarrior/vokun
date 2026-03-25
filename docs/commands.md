@@ -38,14 +38,20 @@ vokun
 ### vokun install
 
 ```
-vokun install <bundle> [flags]
+vokun install <bundle> [bundle...] [flags]
 ```
 
-Install all packages from a bundle. Displays each package with its description,
-marks AUR packages, and offers optional packages separately. Asks for
-confirmation before proceeding.
+Install all packages from one or more bundles. Displays each package with its
+description, marks AUR packages, and offers optional packages separately. Asks
+for confirmation before proceeding. Supports multiple bundles in one command.
 
-Already-installed packages are skipped (`--needed` is passed to pacman).
+Already-installed packages are skipped (`--needed` is passed to pacman). Vokun
+records which packages were actually new vs pre-existing, so `vokun remove`
+only removes what vokun installed.
+
+Bundles with `[select.*]` sections prompt you to pick one tool per category
+(e.g., editor, shell, pager). The `--exclude` and `--only` flags also filter
+select options.
 
 **Conflict pre-flight check:** Before calling pacman, vokun checks each package
 for conflicts via `pacman -Si`. If a conflicting package is already installed on
@@ -57,8 +63,8 @@ After a successful install the bundle is recorded in the state file.
 | Flag | Description |
 |------|-------------|
 | `--pick` | Interactively select which packages to install (fzf or numbered menu) |
-| `--exclude pkg1,pkg2` | Skip specific packages from the bundle |
-| `--only pkg1,pkg2` | Install only these packages from the bundle |
+| `--exclude pkg1,pkg2` | Skip specific packages from the bundle (applies to selects too) |
+| `--only pkg1,pkg2` | Install only these packages from the bundle (applies to selects too) |
 | `--dry-run` | Show what would be installed without making changes |
 | `--yes`, `-y` | Skip confirmation prompt |
 
@@ -66,6 +72,7 @@ Examples:
 
 ```bash
 vokun install coding                        # Install all packages
+vokun install coding sysadmin               # Install multiple bundles
 vokun install coding --pick                 # Choose individual packages
 vokun install coding --exclude gdb,strace   # Skip gdb and strace
 vokun install coding --only git,cmake       # Install only git and cmake
@@ -78,14 +85,29 @@ intentionally excluded.
 ### vokun remove
 
 ```
-vokun remove <bundle> [--dry-run]
+vokun remove <bundle> [bundle...] [--dry-run] [--untrack] [--all]
 ```
 
-Remove packages that are unique to the given bundle. Packages shared with other
-installed bundles are kept and listed. The bundle is removed from the state file
-after the operation.
+By default, removes only packages that vokun actually installed for this bundle.
+Pre-existing packages (already on your system before the bundle was installed)
+are kept. Packages shared with other bundles are always kept. Supports multiple
+bundles in one command.
 
-Use `--dry-run` to preview what would be removed without making changes.
+| Flag | Description |
+|------|-------------|
+| `--dry-run` | Show what would be removed without making changes |
+| `--untrack` | Remove the bundle from vokun tracking only, keep all packages on system |
+| `--all` | Remove ALL bundle packages including pre-existing ones |
+
+Examples:
+
+```bash
+vokun remove gaming                         # Remove only what vokun installed
+vokun remove gaming coding                  # Remove multiple bundles
+vokun remove sysadmin --untrack             # Stop tracking, keep packages
+vokun remove sysadmin --all                 # Remove everything including pre-existing
+vokun remove coding --dry-run               # Preview without removing
+```
 
 ### vokun select
 
@@ -353,11 +375,15 @@ Equivalent to: `sudo pacman -S --needed <package>`
 ### vokun yeet
 
 ```
-vokun yeet <package> [package...]
+vokun yeet <package> [package...] [--untrack]
 ```
 
 Remove packages along with unneeded dependencies and configuration files. Warns
 if a package belongs to an installed bundle.
+
+| Flag | Description |
+|------|-------------|
+| `--untrack` | Remove the package from bundle tracking only, keep it installed |
 
 Equivalent to: `sudo pacman -Rns <package>`
 
@@ -395,11 +421,26 @@ Equivalent to: `pacman -Qo <file>`
 ### vokun update
 
 ```
-vokun update [--aur]
+vokun update [--aur] [--check]
 ```
 
 Synchronize repositories and upgrade all packages. Pass `--aur` to also update
-AUR packages through your configured helper.
+AUR packages through your configured helper. Pass `--check` to only show
+available upgrades without installing them.
+
+| Flag | Description |
+|------|-------------|
+| `--aur` | Include AUR packages |
+| `--check` | Show available upgrades without installing |
+
+Examples:
+
+```bash
+vokun update                    # Full system update
+vokun update --aur              # Include AUR packages
+vokun update --check            # Just check for updates
+vokun update --check --aur      # Check including AUR
+```
 
 Equivalent to: `sudo pacman -Syu`
 
@@ -628,4 +669,5 @@ vokun uninstall
 
 Remove vokun from the system. Detects whether vokun was installed via pacman
 (AUR package) or manually (make install) and uses the appropriate removal
-method.
+method. Shows hints about cleaning up the config directory
+(`~/.config/vokun`) and AUR build cache (`~/.cache/paru/clone/vokun`).
