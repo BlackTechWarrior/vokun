@@ -1087,10 +1087,7 @@ vokun::bundles::install() {
         return 1
     fi
 
-    # Run post-install hooks
-    vokun::bundles::_run_hooks "post_install" false
-
-    # Update state — track installed and skipped packages
+    # Update state BEFORE hooks — so packages are tracked even if hooks fail
     local all_pkgs
     all_pkgs=$(printf '%s ' "${already_installed[@]}" "${repo_packages[@]}" "${aur_packages[@]}")
 
@@ -1121,6 +1118,9 @@ vokun::bundles::install() {
     local installed_list
     installed_list=$(printf '%s ' "${repo_packages[@]}" "${aur_packages[@]}")
     vokun::core::log_action "bundle-install" "$name" "$installed_list"
+
+    # Run post-install hooks (non-fatal — packages are already installed and tracked)
+    vokun::bundles::_run_hooks "post_install" false || true
 
     printf '\n'
     vokun::core::success "Bundle '$name' installed successfully!"

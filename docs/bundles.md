@@ -7,7 +7,7 @@ nav_order: 4
 # Bundles
 
 A bundle is a TOML file that defines a group of packages organized around a
-task. Vokun ships with 24 default bundles and supports user-created custom
+task. Vokun ships with 25 default bundles and supports user-created custom
 bundles.
 
 ---
@@ -43,6 +43,13 @@ aur-package = "AUR packages are flagged and require paru or yay"
 [packages.optional]
 optional-pkg = "Offered during install but not selected by default"
 
+[select.editor]
+label = "CLI Editor"
+neovim = "Vim-based editor with Lua plugins"
+helix = "Post-modern modal editor"
+micro = "Terminal editor with intuitive keybindings"
+default = "neovim"
+
 [hooks]
 pre_install = ["echo 'Before installing packages'"]
 post_install = ["echo 'After installing packages'"]
@@ -75,6 +82,26 @@ during install.
 **`[packages.optional]`** -- Packages that are useful but not essential. During
 `vokun install`, the user is asked whether to include optional packages after
 the core package list is shown.
+
+**`[select.<category>]`** -- Pick-one categories where the user chooses exactly
+one package from a set of alternatives. For example, a "CLI Editor" select
+lets the user pick `neovim`, `helix`, `micro`, or `vim`. Each select section
+needs a `label` key (display name) and optionally a `default` key. The
+`--exclude` and `--only` flags filter select options too.
+
+```toml
+[select.editor]
+label = "Terminal Editor"
+neovim = "Hyperextensible Vim-based editor with Lua plugins and LSP support"
+helix = "Post-modern modal editor with built-in LSP and tree-sitter"
+micro = "Terminal editor with intuitive keybindings (Ctrl+S, Ctrl+C, Ctrl+V)"
+default = "neovim"
+```
+
+During install, the user sees a menu to pick one. Already-installed options
+are marked. A "Skip" option is always available. Use `vokun select <bundle>`
+to change picks after install. Custom bundles can use `[select.*]` sections
+too.
 
 **`[hooks]`** -- Arrays of shell commands that run at specific lifecycle points.
 All hook commands are shown to the user and require confirmation before

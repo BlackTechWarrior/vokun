@@ -24,7 +24,7 @@ regular system packages with no lock-in.
 
 - **Pure Bash** -- zero dependencies beyond pacman. Optionally uses paru/yay
   for AUR support.
-- **24 default bundles** -- coding, sysadmin, python-dev, c-cpp-dev, rust-dev,
+- **25 default bundles** -- coding, sysadmin, python-dev, c-cpp-dev, rust-dev,
   web-dev, networking, security, multimedia, gaming, and more.
 - **Custom bundles** -- define your own in a simple TOML file.
 - **Friendly aliases** -- `vokun get`, `vokun yeet`, `vokun update` instead

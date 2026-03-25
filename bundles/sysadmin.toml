@@ -43,4 +43,4 @@ sd = "Intuitive find-and-replace CLI tool, a simpler alternative to sed"
 choose = "Human-friendly alternative to cut and awk for selecting fields from output"
 
 [hooks]
-post_install = ["echo 'CLI toolkit installed. Add eval \"$(zoxide init bash)\" to your shell rc to enable zoxide.'"]
+post_install = ["echo 'CLI toolkit installed. Add eval $(zoxide init bash) to your shell rc to enable zoxide.'"]

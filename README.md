@@ -252,7 +252,7 @@ Tags: admin, essentials, cli
 
 ## Default Bundle Catalog
 
-Vokun ships with 24 default bundles across six categories.
+Vokun ships with 25 default bundles across six categories.
 
 ### Essentials
 
@@ -371,6 +371,7 @@ post_install = [
 - `[packages]` -- Core packages from the official repositories. Each key is a package name; the value is a human-readable description shown during install.
 - `[packages.aur]` -- AUR packages. These are flagged with integrity warnings and require an AUR helper (paru or yay).
 - `[packages.optional]` -- Packages offered but not selected by default. The user is asked whether to include them during install.
+- `[select.<category>]` -- Pick-one categories where the user chooses exactly one package from alternatives (e.g., editor, pager, shell). Include `label` for the display name and optionally `default`. Use `vokun select <bundle>` to change picks after install.
 - `[hooks]` -- Lifecycle hook arrays: `pre_install`, `post_install`, `pre_remove`, `post_remove`. Hook commands are shown to the user and require confirmation before execution.
 
 Once the file is saved, the bundle appears immediately in `vokun list` and can
