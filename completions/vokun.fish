@@ -93,7 +93,11 @@ complete -c vokun -n "__fish_seen_subcommand_from import"  -l dry  -d "Preview c
 complete -c vokun -n "__fish_seen_subcommand_from hook"    -a "install remove" -d "Hook action"
 
 # profile completes with subcommands
-complete -c vokun -n "__fish_seen_subcommand_from profile" -a "list switch create delete show" -d "Profile action"
+complete -c vokun -n "__fish_seen_subcommand_from profile" -a "list switch create delete copy show" -d "Profile action"
+
+# export completes with profile flags
+complete -c vokun -n "__fish_seen_subcommand_from export"  -l profile -d "Export specific profile"
+complete -c vokun -n "__fish_seen_subcommand_from export"  -l all     -d "Export all profiles"
 
 # sync completes with flags
 complete -c vokun -n "__fish_seen_subcommand_from sync"    -l auto  -d "Auto-reconcile without prompting"

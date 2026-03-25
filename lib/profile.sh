@@ -71,6 +71,7 @@ vokun::profile::dispatch() {
         switch|use) vokun::profile::cmd_switch "$@" ;;
         create|new) vokun::profile::cmd_create "$@" ;;
         delete|rm)  vokun::profile::cmd_delete "$@" ;;
+        copy|cp)    vokun::profile::cmd_copy "$@" ;;
         show|"")    vokun::profile::cmd_show ;;
         *)
             vokun::core::error "Unknown profile subcommand: $subcmd"
@@ -80,6 +81,7 @@ vokun::profile::dispatch() {
             vokun::core::log "  switch <name>       Switch to a profile"
             vokun::core::log "  create <name>       Create a new profile"
             vokun::core::log "  delete <name>       Delete a profile"
+            vokun::core::log "  copy <from> <to>    Copy bundles from one profile to another"
             vokun::core::log "  show               Show active profile"
             return 1
             ;;
@@ -225,4 +227,119 @@ vokun::profile::cmd_delete() {
 
     rm -f "$state_file"
     vokun::core::success "Deleted profile '$name'"
+}
+
+# --- vokun profile copy ---
+vokun::profile::cmd_copy() {
+    local from="${1:-}"
+    local to="${2:-}"
+
+    if [[ -z "$from" || -z "$to" ]]; then
+        vokun::core::error "Usage: vokun profile copy <from> <to>"
+        return 1
+    fi
+
+    if ! command -v jq &>/dev/null; then
+        vokun::core::error "jq is required for profile copy"
+        return 1
+    fi
+
+    local from_file to_file
+    from_file=$(vokun::profile::state_file "$from")
+    to_file=$(vokun::profile::state_file "$to")
+
+    if [[ ! -f "$from_file" ]]; then
+        vokun::core::error "Source profile '$from' does not exist"
+        return 1
+    fi
+
+    # Create target profile if it doesn't exist
+    if [[ ! -f "$to_file" ]]; then
+        vokun::profile::cmd_create "$to" <<< "n"
+        to_file=$(vokun::profile::state_file "$to")
+    fi
+
+    # Get bundles from source
+    local -a from_bundles
+    mapfile -t from_bundles < <(jq -r '.installed_bundles | keys[]' "$from_file" 2>/dev/null)
+
+    if [[ ${#from_bundles[@]} -eq 0 ]]; then
+        vokun::core::info "Profile '$from' has no installed bundles to copy."
+        return 0
+    fi
+
+    # Get bundles already in target
+    local -a to_bundles
+    mapfile -t to_bundles < <(jq -r '.installed_bundles | keys[]' "$to_file" 2>/dev/null)
+
+    local -a new_bundles=()
+    local -a existing_bundles=()
+    local bundle
+    for bundle in "${from_bundles[@]}"; do
+        [[ -z "$bundle" ]] && continue
+        if jq -e --arg b "$bundle" '.installed_bundles | has($b)' "$to_file" &>/dev/null; then
+            existing_bundles+=("$bundle")
+        else
+            new_bundles+=("$bundle")
+        fi
+    done
+
+    printf '\n%sCopy profile: %s → %s%s\n' "$VOKUN_COLOR_BOLD" "$from" "$to" "$VOKUN_COLOR_RESET"
+    printf '%s\n' "$(printf '%.0s─' {1..50})"
+
+    if [[ ${#new_bundles[@]} -gt 0 ]]; then
+        printf '\n  %sBundles to add:%s\n' "$VOKUN_COLOR_GREEN" "$VOKUN_COLOR_RESET"
+        for bundle in "${new_bundles[@]}"; do
+            printf '    + %s\n' "$bundle"
+        done
+    fi
+
+    if [[ ${#existing_bundles[@]} -gt 0 ]]; then
+        printf '\n  %sAlready in target (will merge packages):%s\n' "$VOKUN_COLOR_DIM" "$VOKUN_COLOR_RESET"
+        for bundle in "${existing_bundles[@]}"; do
+            printf '    = %s\n' "$bundle"
+        done
+    fi
+
+    if [[ ${#new_bundles[@]} -eq 0 && ${#existing_bundles[@]} -eq 0 ]]; then
+        vokun::core::info "Nothing to copy."
+        return 0
+    fi
+
+    printf '\n'
+    if ! vokun::core::confirm "Copy ${#from_bundles[@]} bundle(s) to profile '$to'?"; then
+        vokun::core::log "Cancelled."
+        return 0
+    fi
+
+    # Merge each bundle from source into target
+    local tmp
+    for bundle in "${from_bundles[@]}"; do
+        [[ -z "$bundle" ]] && continue
+        local bundle_data
+        bundle_data=$(jq --arg b "$bundle" '.installed_bundles[$b]' "$from_file")
+
+        if jq -e --arg b "$bundle" '.installed_bundles | has($b)' "$to_file" &>/dev/null; then
+            # Merge: union packages, keep target's selections unless source has ones target doesn't
+            tmp=$(mktemp)
+            jq --arg b "$bundle" --argjson src "$bundle_data" '
+                .installed_bundles[$b].packages = ([.installed_bundles[$b].packages[], $src.packages[]?] | unique) |
+                .installed_bundles[$b].installed_by_vokun = ([.installed_bundles[$b].installed_by_vokun[]?, $src.installed_by_vokun[]?] | unique) |
+                .installed_bundles[$b].selections = ((.installed_bundles[$b].selections // {}) + ($src.selections // {}) )
+            ' "$to_file" > "$tmp" && mv "$tmp" "$to_file"
+        else
+            # New bundle: copy entirely
+            tmp=$(mktemp)
+            jq --arg b "$bundle" --argjson data "$bundle_data" \
+                '.installed_bundles[$b] = $data' "$to_file" > "$tmp" && mv "$tmp" "$to_file"
+        fi
+    done
+
+    # Also copy unmanaged list (merge unique)
+    tmp=$(mktemp)
+    jq --slurpfile src "$from_file" \
+        '.unmanaged = ([.unmanaged[]?, $src[0].unmanaged[]?] | unique)' \
+        "$to_file" > "$tmp" && mv "$tmp" "$to_file"
+
+    vokun::core::success "Copied ${#from_bundles[@]} bundle(s) from '$from' to '$to'."
 }

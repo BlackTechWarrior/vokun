@@ -379,7 +379,7 @@ ${VOKUN_COLOR_BOLD}QUERY & DIAGNOSTICS${VOKUN_COLOR_RESET}
 
 ${VOKUN_COLOR_BOLD}AUTOMATION${VOKUN_COLOR_RESET}
     ${VOKUN_COLOR_MAGENTA}hook${VOKUN_COLOR_RESET}    <action>         Manage pacman hook ${VOKUN_COLOR_DIM}(install, remove)${VOKUN_COLOR_RESET}
-    ${VOKUN_COLOR_MAGENTA}profile${VOKUN_COLOR_RESET}  <action>         Manage profiles ${VOKUN_COLOR_DIM}(list, switch, create, delete)${VOKUN_COLOR_RESET}
+    ${VOKUN_COLOR_MAGENTA}profile${VOKUN_COLOR_RESET}  <action>         Manage profiles ${VOKUN_COLOR_DIM}(list, switch, create, delete, copy)${VOKUN_COLOR_RESET}
     ${VOKUN_COLOR_MAGENTA}dotfiles${VOKUN_COLOR_RESET} <action>        Manage dotfiles ${VOKUN_COLOR_DIM}(init, apply, push, pull, status)${VOKUN_COLOR_RESET}
     ${VOKUN_COLOR_MAGENTA}log${VOKUN_COLOR_RESET}                      View action history
     ${VOKUN_COLOR_MAGENTA}rollback${VOKUN_COLOR_RESET}                 Undo the last install or remove
@@ -672,13 +672,21 @@ EOF
             ;;
         export)
             cat <<EOF
-${VOKUN_COLOR_BOLD}vokun export${VOKUN_COLOR_RESET} [file] [--json]
+${VOKUN_COLOR_BOLD}vokun export${VOKUN_COLOR_RESET} [file] [--json] [--profile <name>] [--all]
 
 Export custom bundles, state, and config to a portable file.
 Default output: ./vokun-export.tar.gz
 
 ${VOKUN_COLOR_BOLD}Flags:${VOKUN_COLOR_RESET}
-    --json    Export as JSON instead of tarball
+    --json             Export as JSON instead of tarball
+    --profile <name>   Export a specific profile's state
+    --all              Export all profiles' state
+
+${VOKUN_COLOR_BOLD}Examples:${VOKUN_COLOR_RESET}
+    vokun export                           # Current profile
+    vokun export --profile workstation     # Specific profile
+    vokun export --all                     # All profiles
+    vokun export backup.tar.gz --all       # All profiles to named file
 EOF
             ;;
         import)
@@ -781,10 +789,12 @@ ${VOKUN_COLOR_BOLD}Actions:${VOKUN_COLOR_RESET}
     switch <name>      Switch to a different profile
     create <name>      Create a new profile
     delete <name>      Delete a profile
+    copy <from> <to>   Copy bundles from one profile to another (merges)
 
 ${VOKUN_COLOR_BOLD}Examples:${VOKUN_COLOR_RESET}
     vokun profile create workstation
     vokun profile switch server
+    vokun profile copy workstation server   # Merge workstation bundles into server
     vokun profile list
 EOF
             ;;

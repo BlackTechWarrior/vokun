@@ -87,7 +87,10 @@ _vokun() {
                     _vokun_bundle_names
                     ;;
                 export)
-                    _arguments '--json[Export in JSON format]'
+                    _arguments \
+                        '--json[Export in JSON format]' \
+                        '--profile[Export specific profile]:profile:' \
+                        '--all[Export all profiles]'
                     ;;
                 import)
                     _arguments '--dry[Preview changes without applying]'
@@ -104,6 +107,7 @@ _vokun() {
                         'switch:Switch to a different profile'
                         'create:Create a new profile'
                         'delete:Delete a profile'
+                        'copy:Copy bundles from one profile to another'
                         'show:Show the active profile'
                     )
                     _describe -t profile-cmds 'profile subcommand' profile_cmds

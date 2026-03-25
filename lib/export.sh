@@ -8,6 +8,8 @@
 vokun::export::run() {
     local output_file="./vokun-export.tar.gz"
     local json_mode=false
+    local export_all=false
+    local export_profile=""
     local args=()
 
     # Parse arguments
@@ -16,6 +18,14 @@ vokun::export::run() {
             --json)
                 json_mode=true
                 shift
+                ;;
+            --all)
+                export_all=true
+                shift
+                ;;
+            --profile)
+                export_profile="${2:-}"
+                shift 2 || { vokun::core::error "--profile requires a name"; return 1; }
                 ;;
             -*)
                 vokun::core::error "Unknown flag: $1"
@@ -36,8 +46,48 @@ vokun::export::run() {
     fi
 
     local custom_dir="${VOKUN_CONFIG_DIR}/bundles/custom"
-    local state_file="${VOKUN_CONFIG_DIR}/state.json"
     local config_file="${VOKUN_CONFIG_DIR}/vokun.conf"
+
+    # Determine which state files to export
+    local -a state_files=()
+    local -a state_labels=()
+
+    if [[ "$export_all" == true ]]; then
+        # All profiles
+        if [[ -f "${VOKUN_CONFIG_DIR}/state.json" ]]; then
+            state_files+=("${VOKUN_CONFIG_DIR}/state.json")
+            state_labels+=("state: default")
+        fi
+        local sf
+        for sf in "${VOKUN_CONFIG_DIR}"/state-*.json; do
+            [[ -f "$sf" ]] || continue
+            local pname
+            pname=$(basename "$sf" | sed 's/^state-//;s/\.json$//')
+            state_files+=("$sf")
+            state_labels+=("state: $pname")
+        done
+    elif [[ -n "$export_profile" ]]; then
+        # Specific profile
+        local pfile
+        pfile=$(vokun::profile::state_file "$export_profile")
+        if [[ -f "$pfile" ]]; then
+            state_files+=("$pfile")
+            state_labels+=("state: $export_profile")
+        else
+            vokun::core::error "Profile '$export_profile' does not exist"
+            return 1
+        fi
+    else
+        # Current profile (default behavior)
+        local active
+        active=$(vokun::profile::get_active)
+        local state_file
+        state_file=$(vokun::profile::state_file "$active")
+        if [[ -f "$state_file" ]]; then
+            state_files+=("$state_file")
+            state_labels+=("state: $active")
+        fi
+    fi
 
     # Collect files to export
     local -a export_files=()
@@ -57,10 +107,11 @@ vokun::export::run() {
         fi
     fi
 
-    if [[ -f "$state_file" ]]; then
-        export_files+=("$state_file")
-        export_labels+=("state: state.json")
-    fi
+    local sf
+    for sf in "${state_files[@]}"; do
+        export_files+=("$sf")
+    done
+    export_labels+=("${state_labels[@]}")
 
     if [[ -f "$config_file" ]]; then
         export_files+=("$config_file")
@@ -108,8 +159,8 @@ vokun::export::_export_tar() {
             */bundles/custom/*)
                 cp "$f" "${tmp_dir}/bundles/custom/${basename}"
                 ;;
-            */state.json)
-                cp "$f" "${tmp_dir}/state.json"
+            */state*.json)
+                cp "$f" "${tmp_dir}/${basename}"
                 ;;
             */vokun.conf)
                 cp "$f" "${tmp_dir}/vokun.conf"

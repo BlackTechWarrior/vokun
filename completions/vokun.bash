@@ -48,7 +48,7 @@ _vokun() {
             COMPREPLY=( $(compgen -W "install remove" -- "$cur") )
             ;;
         profile)
-            COMPREPLY=( $(compgen -W "list switch create delete show" -- "$cur") )
+            COMPREPLY=( $(compgen -W "list switch create delete copy show" -- "$cur") )
             ;;
         sync)
             if [[ "$cur" == --* ]]; then
