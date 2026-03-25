@@ -86,11 +86,28 @@ _vokun() {
                 select)
                     _vokun_bundle_names
                     ;;
+                yeet)
+                    _arguments \
+                        '--untrack[Remove from bundle tracking only]'
+                    ;;
                 export)
                     _arguments \
                         '--json[Export in JSON format]' \
                         '--profile[Export specific profile]:profile:' \
                         '--all[Export all profiles]'
+                    ;;
+                cache)
+                    _arguments \
+                        '--clean[Keep last 2 versions of each package]' \
+                        '--purge[Remove all cached packages]'
+                    ;;
+                size)
+                    _arguments \
+                        '--top[Show top N packages]:count:'
+                    ;;
+                recent)
+                    _arguments \
+                        '--count[Number of entries to show]:count:'
                     ;;
                 import)
                     _arguments '--dry[Preview changes without applying]'
@@ -112,10 +129,30 @@ _vokun() {
                     )
                     _describe -t profile-cmds 'profile subcommand' profile_cmds
                     ;;
+                find)
+                    _arguments \
+                        '--aur[Include AUR results]' \
+                        '--pick[Interactively select packages to install]'
+                    ;;
+                which)
+                    _arguments \
+                        '--remote[Query remote repo/AUR info]'
+                    ;;
                 update)
                     _arguments \
                         '--aur[Include AUR packages]' \
+                        '--aur-only[Update only AUR packages]' \
                         '--check[Show available upgrades without installing]'
+                    ;;
+                orphans)
+                    _arguments \
+                        '--clean[Remove all orphaned packages]' \
+                        '--deep[Deep cleanup including AUR build deps]'
+                    ;;
+                list)
+                    _arguments \
+                        '--installed[Show only installed bundles]' \
+                        '--deps[List packages installed as dependencies]'
                     ;;
                 sync)
                     _arguments \
@@ -123,15 +160,9 @@ _vokun() {
                         '--quiet[Suppress informational output]'
                     ;;
                 bundle)
-                    local -a bundle_cmds
-                    bundle_cmds=(
-                        'create:Create a new custom bundle'
-                        'add:Add a package to a bundle'
-                        'rm:Remove a package from a bundle'
-                        'edit:Open bundle in editor'
-                        'delete:Delete a custom bundle'
-                    )
-                    _describe -t bundle-cmds 'bundle subcommand' bundle_cmds
+                    _arguments \
+                        '--editor[Open bundle TOML in $EDITOR directly]' \
+                        '1:action:(create add rm edit delete)'
                     ;;
                 log)
                     _arguments \
@@ -150,15 +181,10 @@ _vokun() {
                     _describe -t dotfiles-cmds 'dotfiles subcommand' dotfiles_cmds
                     ;;
                 snapshot)
-                    local -a snapshot_cmds
-                    snapshot_cmds=(
-                        'create:Save current system state'
-                        'list:Show all saved snapshots'
-                        'diff:Compare snapshot against current state'
-                        'restore:Restore system to match a snapshot'
-                        'delete:Remove a saved snapshot'
-                    )
-                    _describe -t snapshot-cmds 'snapshot subcommand' snapshot_cmds
+                    _arguments \
+                        '--dry-run[Preview without making changes]' \
+                        '--yes[Skip confirmation prompts]' \
+                        '1:action:(create list diff restore delete)'
                     ;;
                 history)
                     _arguments \

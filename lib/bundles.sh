@@ -382,13 +382,33 @@ vokun::bundles::_prompt_select() {
 vokun::bundles::list() {
     local show_installed_only=false
     local names_only=false
+    local show_deps=false
 
     for arg in "$@"; do
         case "$arg" in
             --installed) show_installed_only=true ;;
             --names-only) names_only=true ;;
+            --deps) show_deps=true ;;
         esac
     done
+
+    # --deps: list packages installed as dependencies
+    if [[ "$show_deps" == true ]]; then
+        vokun::core::show_cmd "pacman -Qd"
+        printf '%sPackages installed as dependencies:%s\n\n' "$VOKUN_COLOR_BOLD" "$VOKUN_COLOR_RESET"
+        local dep_list
+        dep_list=$(pacman -Qd 2>/dev/null || true)
+        if [[ -z "$dep_list" ]]; then
+            vokun::core::success "No dependency-installed packages found."
+        else
+            printf '%s\n' "$dep_list"
+            local count
+            count=$(printf '%s\n' "$dep_list" | wc -l)
+            printf '\n%s%d package(s) installed as dependencies.%s\n' \
+                "$VOKUN_COLOR_DIM" "$count" "$VOKUN_COLOR_RESET"
+        fi
+        return 0
+    fi
 
     local -a bundle_files
     mapfile -t bundle_files < <(vokun::bundles::find_all)
@@ -433,7 +453,7 @@ vokun::bundles::list() {
         fi
 
         local entry="${name}|${description}|${installed}"
-        if [[ -v "tag_bundles[$category]" ]]; then
+        if [[ -n "${tag_bundles[$category]+x}" ]]; then
             tag_bundles["$category"]+=$'\n'"$entry"
         else
             tag_bundles["$category"]="$entry"
@@ -937,12 +957,27 @@ vokun::bundles::install() {
         local aur_helper
         aur_helper=$(vokun::core::get_aur_helper)
         if [[ -z "$aur_helper" ]]; then
-            printf '\n  %sAUR packages (skipped — no AUR helper found):%s\n' "$VOKUN_COLOR_YELLOW" "$VOKUN_COLOR_RESET"
-            for pkg in "${aur_packages[@]}"; do
-                printf '    %s (skipped)\n' "$pkg"
-            done
-            aur_packages=()
-        else
+            # Prompt for AUR helper installation
+            local rc=0
+            aur_helper=$(vokun::core::require_aur_helper "installing AUR packages") || rc=$?
+            if [[ $rc -eq 1 ]]; then
+                # Cancelled
+                printf '\n  %sAUR packages (skipped — no AUR helper):%s\n' "$VOKUN_COLOR_YELLOW" "$VOKUN_COLOR_RESET"
+                for pkg in "${aur_packages[@]}"; do
+                    printf '    %s (skipped)\n' "$pkg"
+                done
+                aur_packages=()
+            elif [[ $rc -eq 2 ]]; then
+                # Manual mode — handled later during install
+                printf '\n  %sAUR packages (manual install via makepkg -si):%s\n' "$VOKUN_COLOR_YELLOW" "$VOKUN_COLOR_RESET"
+                for pkg in "${aur_packages[@]}"; do
+                    local desc
+                    desc=$(vokun::toml::get "packages.aur.${pkg}")
+                    printf '    %s%-25s%s %s\n' "$VOKUN_COLOR_BOLD" "$pkg" "$VOKUN_COLOR_RESET" "${VOKUN_COLOR_DIM}${desc}${VOKUN_COLOR_RESET}"
+                done
+            fi
+        fi
+        if [[ -n "$aur_helper" ]]; then
             printf '\n  %sAUR packages (via %s):%s\n' "$VOKUN_COLOR_YELLOW" "$aur_helper" "$VOKUN_COLOR_RESET"
             for pkg in "${aur_packages[@]}"; do
                 local desc
@@ -1078,8 +1113,20 @@ vokun::bundles::install() {
             done
         fi
 
-        vokun::core::show_cmd "$aur_helper -S --needed ${aur_packages[*]}"
-        "$aur_helper" -S --needed "${aur_packages[@]}" || install_failed=true
+        if [[ -n "$aur_helper" ]]; then
+            vokun::core::show_cmd "$aur_helper -S --needed ${aur_packages[*]}"
+            "$aur_helper" -S --needed "${aur_packages[@]}" || install_failed=true
+        else
+            # Manual install mode (no AUR helper, user chose option 3)
+            vokun::core::info "Installing AUR packages manually..."
+            local aur_pkg
+            for aur_pkg in "${aur_packages[@]}"; do
+                vokun::core::manual_aur_install "$aur_pkg" || {
+                    vokun::core::warn "Failed to install ${aur_pkg}, continuing..."
+                    install_failed=true
+                }
+            done
+        fi
     fi
 
     if [[ "$install_failed" == true ]]; then

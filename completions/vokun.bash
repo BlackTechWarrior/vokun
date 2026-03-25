@@ -56,10 +56,28 @@ _vokun() {
             fi
             ;;
         bundle)
-            COMPREPLY=( $(compgen -W "create add rm edit delete" -- "$cur") )
+            if [[ "$cur" == --* ]]; then
+                COMPREPLY=( $(compgen -W "--editor" -- "$cur") )
+            else
+                COMPREPLY=( $(compgen -W "create add rm edit delete" -- "$cur") )
+            fi
+            ;;
+        yeet)
+            if [[ "$cur" == --* ]]; then
+                COMPREPLY=( $(compgen -W "--untrack" -- "$cur") )
+            fi
+            ;;
+        cache)
+            COMPREPLY=( $(compgen -W "--clean --purge" -- "$cur") )
+            ;;
+        size)
+            COMPREPLY=( $(compgen -W "--top" -- "$cur") )
+            ;;
+        recent)
+            COMPREPLY=( $(compgen -W "--count" -- "$cur") )
             ;;
         export)
-            COMPREPLY=( $(compgen -W "--json" -- "$cur") )
+            COMPREPLY=( $(compgen -W "--json --profile --all" -- "$cur") )
             ;;
         import)
             COMPREPLY=( $(compgen -W "--dry" -- "$cur") )
@@ -87,8 +105,20 @@ _vokun() {
                 fi
             fi
             ;;
+        find)
+            COMPREPLY=( $(compgen -W "--aur --pick" -- "$cur") )
+            ;;
+        which)
+            COMPREPLY=( $(compgen -W "--remote" -- "$cur") )
+            ;;
         update)
-            COMPREPLY=( $(compgen -W "--aur --check" -- "$cur") )
+            COMPREPLY=( $(compgen -W "--aur --aur-only --check" -- "$cur") )
+            ;;
+        orphans)
+            COMPREPLY=( $(compgen -W "--clean --deep" -- "$cur") )
+            ;;
+        list)
+            COMPREPLY=( $(compgen -W "--installed --deps" -- "$cur") )
             ;;
         history)
             COMPREPLY=( $(compgen -W "--installed --removed --upgraded --downgraded --search --count" -- "$cur") )

@@ -114,43 +114,135 @@ vokun::aliases::yeet() {
 # --- vokun find ---
 vokun::aliases::find() {
     local use_aur=false
+    local use_pick=false
     local -a query_args=()
 
     for arg in "$@"; do
         case "$arg" in
             --aur) use_aur=true ;;
+            --pick) use_pick=true ;;
             *) query_args+=("$arg") ;;
         esac
     done
 
     if [[ ${#query_args[@]} -eq 0 ]]; then
-        vokun::core::error "Usage: vokun find <query> [--aur]"
+        vokun::core::error "Usage: vokun find <query> [--aur] [--pick]"
         return 1
     fi
 
+    # Collect search results
+    local results=""
     if [[ "$use_aur" == true ]]; then
         local aur_helper
         aur_helper=$(vokun::core::get_aur_helper)
         if [[ -n "$aur_helper" ]]; then
             vokun::core::show_cmd "$aur_helper -Ss ${query_args[*]}"
-            "$aur_helper" -Ss "${query_args[@]}"
+            results=$("$aur_helper" -Ss "${query_args[@]}" 2>/dev/null) || true
         else
             vokun::core::warn "No AUR helper found. Searching repos only."
-            vokun::core::run_pacman_only "-Ss" "${query_args[@]}"
+            results=$(pacman -Ss "${query_args[@]}" 2>/dev/null) || true
         fi
     else
-        vokun::core::run_pacman_only "-Ss" "${query_args[@]}"
+        vokun::core::show_cmd "pacman -Ss ${query_args[*]}"
+        results=$(pacman -Ss "${query_args[@]}" 2>/dev/null) || true
     fi
+
+    if [[ -z "$results" ]]; then
+        vokun::core::info "No packages found."
+        return 0
+    fi
+
+    # If --pick, run interactive selection
+    if [[ "$use_pick" == true ]]; then
+        # Extract package names (lines starting with repo/name)
+        local -a pkg_lines=()
+        mapfile -t pkg_lines < <(printf '%s\n' "$results" | grep -P '^\S+/' | sed 's/ .*//')
+
+        if [[ ${#pkg_lines[@]} -eq 0 ]]; then
+            vokun::core::info "No packages to select."
+            return 0
+        fi
+
+        local -a selected=()
+        if command -v fzf &>/dev/null && [[ "${VOKUN_FZF:-true}" == "true" ]]; then
+            mapfile -t selected < <(
+                printf '%s\n' "${pkg_lines[@]}" | \
+                fzf --multi --prompt="Select packages to install: " \
+                    --header="TAB to select, ENTER to confirm" 2>/dev/tty
+            )
+        else
+            # Numbered fallback
+            printf '\n'
+            local i=1
+            for entry in "${pkg_lines[@]}"; do
+                printf '  %s%d)%s %s\n' "$VOKUN_COLOR_BOLD" "$i" "$VOKUN_COLOR_RESET" "$entry"
+                ((i++))
+            done
+            printf '\n  Enter numbers to install (comma/space separated, empty to cancel): '
+            local reply
+            read -r reply
+            if [[ -n "$reply" ]]; then
+                # Parse comma or space separated numbers
+                local -a nums
+                IFS=', ' read -ra nums <<< "$reply"
+                for n in "${nums[@]}"; do
+                    if [[ "$n" =~ ^[0-9]+$ ]] && (( n >= 1 && n <= ${#pkg_lines[@]} )); then
+                        selected+=("${pkg_lines[$((n-1))]}")
+                    fi
+                done
+            fi
+        fi
+
+        if [[ ${#selected[@]} -eq 0 ]]; then
+            vokun::core::info "No packages selected."
+            return 0
+        fi
+
+        # Strip repo prefix (e.g., "extra/bat" → "bat")
+        local -a pkgs=()
+        for entry in "${selected[@]}"; do
+            pkgs+=("${entry##*/}")
+        done
+
+        vokun::core::info "Installing: ${pkgs[*]}"
+        vokun::aliases::get "${pkgs[@]}"
+        return $?
+    fi
+
+    # No --pick: just print results
+    printf '%s\n' "$results"
 }
 
 # --- vokun which ---
 vokun::aliases::which() {
-    if [[ $# -eq 0 ]]; then
-        vokun::core::error "Usage: vokun which <package>"
+    local remote=false
+    local -a packages=()
+
+    for arg in "$@"; do
+        case "$arg" in
+            --remote) remote=true ;;
+            *) packages+=("$arg") ;;
+        esac
+    done
+
+    if [[ ${#packages[@]} -eq 0 ]]; then
+        vokun::core::error "Usage: vokun which <package> [--remote]"
         return 1
     fi
 
-    vokun::core::run_pacman_only "-Qi" "$@"
+    if [[ "$remote" == true ]]; then
+        # Try repo first, fall back to AUR helper for AUR packages
+        local aur_helper
+        aur_helper=$(vokun::core::get_aur_helper)
+        if [[ -n "$aur_helper" ]]; then
+            vokun::core::show_cmd "$aur_helper -Si ${packages[*]}"
+            "$aur_helper" -Si "${packages[@]}"
+        else
+            vokun::core::run_pacman_only "-Si" "${packages[@]}"
+        fi
+    else
+        vokun::core::run_pacman_only "-Qi" "${packages[@]}"
+    fi
 }
 
 # --- vokun owns ---
@@ -166,14 +258,38 @@ vokun::aliases::owns() {
 # --- vokun update ---
 vokun::aliases::update() {
     local use_aur=false
+    local aur_only=false
     local check_only=false
 
     for arg in "$@"; do
         case "$arg" in
             --aur) use_aur=true ;;
+            --aur-only) aur_only=true ;;
             --check) check_only=true ;;
         esac
     done
+
+    # --aur-only check mode
+    if [[ "$aur_only" == true && "$check_only" == true ]]; then
+        local aur_helper
+        aur_helper=$(vokun::core::get_aur_helper)
+        if [[ -z "$aur_helper" ]]; then
+            vokun::core::warn "No AUR helper found. Cannot check AUR updates."
+            return 1
+        fi
+        vokun::core::show_cmd "$aur_helper -Qua"
+        local updates
+        updates=$("$aur_helper" -Qua 2>/dev/null) || true
+        if [[ -n "$updates" ]]; then
+            printf '%s\n' "$updates"
+            local count
+            count=$(printf '%s\n' "$updates" | wc -l)
+            printf '\n%s%d AUR update(s) available.%s\n' "$VOKUN_COLOR_BOLD" "$count" "$VOKUN_COLOR_RESET"
+        else
+            vokun::core::success "All AUR packages are up to date."
+        fi
+        return 0
+    fi
 
     if [[ "$check_only" == true ]]; then
         local updates=""
@@ -203,6 +319,26 @@ vokun::aliases::update() {
         return 0
     fi
 
+    # --aur-only update mode
+    if [[ "$aur_only" == true ]]; then
+        local aur_helper
+        aur_helper=$(vokun::core::get_aur_helper)
+        if [[ -z "$aur_helper" ]]; then
+            vokun::core::warn "No AUR helper found. Cannot update AUR packages."
+            return 1
+        fi
+        vokun::core::warn "Updating AUR packages without a full system update."
+        if ! vokun::core::confirm "Proceed without full system update?"; then
+            vokun::core::info "Running full system + AUR update instead."
+            vokun::core::show_cmd "$aur_helper -Syu"
+            "$aur_helper" -Syu
+            return $?
+        fi
+        vokun::core::show_cmd "$aur_helper -Sua"
+        "$aur_helper" -Sua
+        return $?
+    fi
+
     if [[ "$use_aur" == true ]]; then
         local aur_helper
         aur_helper=$(vokun::core::get_aur_helper)
@@ -221,12 +357,27 @@ vokun::aliases::update() {
 # --- vokun orphans ---
 vokun::aliases::orphans() {
     local clean=false
+    local deep=false
 
     for arg in "$@"; do
         case "$arg" in
             --clean) clean=true ;;
+            --deep) deep=true ;;
         esac
     done
+
+    # --deep: use AUR helper's cleanup (handles AUR build deps)
+    if [[ "$deep" == true ]]; then
+        local aur_helper
+        aur_helper=$(vokun::core::get_aur_helper)
+        if [[ -z "$aur_helper" ]]; then
+            vokun::core::warn "No AUR helper found. Use --clean for standard orphan removal."
+            return 1
+        fi
+        vokun::core::show_cmd "$aur_helper -c"
+        "$aur_helper" -c
+        return $?
+    fi
 
     if [[ "$clean" == true ]]; then
         local orphans
@@ -255,6 +406,9 @@ vokun::aliases::orphans() {
         else
             printf '%s\n' "$result"
             printf '\n%sRun %svokun orphans --clean%s to remove them.%s\n' \
+                "$VOKUN_COLOR_DIM" "$VOKUN_COLOR_RESET${VOKUN_COLOR_BOLD}" \
+                "$VOKUN_COLOR_RESET${VOKUN_COLOR_DIM}" "$VOKUN_COLOR_RESET"
+            printf '%sRun %svokun orphans --deep%s for AUR build dep cleanup.%s\n' \
                 "$VOKUN_COLOR_DIM" "$VOKUN_COLOR_RESET${VOKUN_COLOR_BOLD}" \
                 "$VOKUN_COLOR_RESET${VOKUN_COLOR_DIM}" "$VOKUN_COLOR_RESET"
         fi

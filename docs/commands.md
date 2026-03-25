@@ -133,6 +133,7 @@ highlighted.
 |------|-------------|
 | `--installed` | Show only installed bundles |
 | `--names-only` | Print bare names, one per line (used by completions) |
+| `--deps` | List packages installed as dependencies (`pacman -Qd`) |
 
 ### vokun info
 
@@ -390,23 +391,34 @@ Equivalent to: `sudo pacman -Rns <package>`
 ### vokun find
 
 ```
-vokun find <query> [--aur]
+vokun find <query> [--aur] [--pick]
 ```
 
 Search for packages in the sync repositories. Pass `--aur` to include AUR
-results (requires paru or yay).
+results (requires paru or yay). Pass `--pick` to interactively select packages
+from results and install them via `vokun get`.
+
+| Flag | Description |
+|------|-------------|
+| `--aur` | Include AUR results |
+| `--pick` | Interactively select packages to install (fzf or numbered menu) |
 
 Equivalent to: `pacman -Ss <query>`
 
 ### vokun which
 
 ```
-vokun which <package>
+vokun which <package> [--remote]
 ```
 
-Show detailed information about an installed package.
+Show detailed information about a package. By default queries locally installed
+packages. Pass `--remote` to query the remote sync databases instead.
 
-Equivalent to: `pacman -Qi <package>`
+| Flag | Description |
+|------|-------------|
+| `--remote` | Query remote repo/AUR info (`pacman -Si`) |
+
+Equivalent to: `pacman -Qi <package>` (or `pacman -Si` with `--remote`)
 
 ### vokun owns
 
@@ -421,16 +433,18 @@ Equivalent to: `pacman -Qo <file>`
 ### vokun update
 
 ```
-vokun update [--aur] [--check]
+vokun update [--aur] [--aur-only] [--check]
 ```
 
 Synchronize repositories and upgrade all packages. Pass `--aur` to also update
-AUR packages through your configured helper. Pass `--check` to only show
+AUR packages through your configured helper. Pass `--aur-only` to update only
+AUR packages without a full system update. Pass `--check` to only show
 available upgrades without installing them.
 
 | Flag | Description |
 |------|-------------|
 | `--aur` | Include AUR packages |
+| `--aur-only` | Update only AUR packages (`paru/yay -Sua`) |
 | `--check` | Show available upgrades without installing |
 
 Examples:
@@ -438,8 +452,10 @@ Examples:
 ```bash
 vokun update                    # Full system update
 vokun update --aur              # Include AUR packages
+vokun update --aur-only         # AUR packages only
 vokun update --check            # Just check for updates
 vokun update --check --aur      # Check including AUR
+vokun update --check --aur-only # Check only AUR updates
 ```
 
 Equivalent to: `sudo pacman -Syu`
@@ -479,11 +495,12 @@ prevents blindly executing arbitrary shell commands from untrusted exports.
 ### vokun orphans
 
 ```
-vokun orphans [--clean]
+vokun orphans [--clean] [--deep]
 ```
 
 List packages that were installed as dependencies but are no longer required by
-any installed package. Pass `--clean` to remove them.
+any installed package. Pass `--clean` to remove them. Pass `--deep` for
+thorough cleanup including AUR build dependencies (`paru/yay -c`).
 
 ### vokun cache
 

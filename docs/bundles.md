@@ -218,7 +218,7 @@ optional packages are also inherited.
 
 ## Default bundle catalog
 
-Vokun ships with 24 default bundles. This table is generated from the actual
+Vokun ships with 25 default bundles. This table is generated from the actual
 TOML files in the repository.
 
 | Bundle | Description | Tags | Packages |

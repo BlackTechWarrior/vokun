@@ -10,7 +10,7 @@ permalink: /
 **Task-oriented package bundle manager for Arch Linux.**
 
 Vokun wraps `pacman`, `paru`, and `yay` to let you install curated groups of
-packages -- called **bundles** -- with a single command. It ships with 24
+packages -- called **bundles** -- with a single command. It ships with 25
 default bundles covering development, system administration, networking,
 multimedia, gaming, and more.
 

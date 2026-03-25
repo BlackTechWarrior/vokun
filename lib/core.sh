@@ -200,6 +200,171 @@ vokun::core::get_aur_helper() {
     vokun::core::detect_aur_helper
 }
 
+# Save the AUR helper choice to vokun.conf
+vokun::core::save_aur_helper() {
+    local helper="$1"
+    local config_file="${VOKUN_CONFIG_DIR}/vokun.conf"
+
+    if [[ -f "$config_file" ]]; then
+        # Update existing config — replace or insert aur_helper line
+        if grep -q '^aur_helper' "$config_file"; then
+            sed -i "s/^aur_helper.*/aur_helper = \"${helper}\"/" "$config_file"
+        elif grep -q '^\[general\]' "$config_file"; then
+            sed -i "/^\[general\]/a aur_helper = \"${helper}\"" "$config_file"
+        else
+            printf '\n[general]\naur_helper = "%s"\n' "$helper" >> "$config_file"
+        fi
+    else
+        mkdir -p "$VOKUN_CONFIG_DIR"
+        cat > "$config_file" <<CONF
+[general]
+aur_helper = "${helper}"
+CONF
+    fi
+
+    # Update the in-memory value
+    VOKUN_AUR_HELPER="$helper"
+    export VOKUN_AUR_HELPER
+}
+
+# Bootstrap an AUR helper by building from source
+vokun::core::bootstrap_aur_helper() {
+    local helper="$1"
+    local aur_url="https://aur.archlinux.org/${helper}.git"
+
+    vokun::core::show_cmd "sudo pacman -S --needed base-devel git"
+    sudo pacman -S --needed base-devel git || {
+        vokun::core::error "Failed to install build dependencies"
+        return 1
+    }
+
+    local tmpdir
+    tmpdir=$(mktemp -d)
+
+    printf '\n'
+    vokun::core::show_cmd "git clone ${aur_url} ${tmpdir}/${helper}"
+    git clone "$aur_url" "${tmpdir}/${helper}" || {
+        vokun::core::error "Failed to clone ${helper}"
+        rm -rf "$tmpdir"
+        return 1
+    }
+
+    vokun::core::show_cmd "cd ${tmpdir}/${helper} && makepkg -si"
+    (cd "${tmpdir}/${helper}" && makepkg -si) || {
+        vokun::core::error "Failed to build ${helper}"
+        rm -rf "$tmpdir"
+        return 1
+    }
+
+    rm -rf "$tmpdir"
+
+    if command -v "$helper" &>/dev/null; then
+        vokun::core::success "${helper} installed successfully."
+        vokun::core::save_aur_helper "$helper"
+        return 0
+    else
+        vokun::core::error "${helper} installation may have failed."
+        return 1
+    fi
+}
+
+# Install a single AUR package manually (clone + makepkg -si)
+vokun::core::manual_aur_install() {
+    local pkg="$1"
+    local aur_url="https://aur.archlinux.org/${pkg}.git"
+
+    vokun::core::show_cmd "sudo pacman -S --needed base-devel git"
+    sudo pacman -S --needed base-devel git || {
+        vokun::core::error "Failed to install build dependencies"
+        return 1
+    }
+
+    local tmpdir
+    tmpdir=$(mktemp -d)
+
+    vokun::core::show_cmd "git clone ${aur_url} ${tmpdir}/${pkg}"
+    git clone "$aur_url" "${tmpdir}/${pkg}" || {
+        vokun::core::error "Failed to clone ${pkg} from AUR"
+        rm -rf "$tmpdir"
+        return 1
+    }
+
+    vokun::core::show_cmd "cd ${tmpdir}/${pkg} && makepkg -si"
+    (cd "${tmpdir}/${pkg}" && makepkg -si) || {
+        vokun::core::error "Failed to build ${pkg}"
+        rm -rf "$tmpdir"
+        return 1
+    }
+
+    rm -rf "$tmpdir"
+    vokun::core::success "${pkg} installed from AUR."
+}
+
+# Prompt user to choose an AUR helper when none is configured
+# Returns 0 if an AUR helper is now available, 1 if cancelled/manual
+vokun::core::prompt_aur_helper() {
+    local context="${1:-AUR operation}"
+
+    vokun::core::warn "No AUR helper configured."
+    printf '\n  An AUR helper is needed for %s.\n' "$context"
+    printf '  Choose how to proceed:\n\n'
+    printf '    %s1)%s  Install paru %s(recommended)%s\n' \
+        "$VOKUN_COLOR_BOLD" "$VOKUN_COLOR_RESET" "$VOKUN_COLOR_GREEN" "$VOKUN_COLOR_RESET"
+    printf '    %s2)%s  Install yay\n' "$VOKUN_COLOR_BOLD" "$VOKUN_COLOR_RESET"
+    printf '    %s3)%s  Manual install %s(clone + makepkg -si, per-package)%s\n' \
+        "$VOKUN_COLOR_BOLD" "$VOKUN_COLOR_RESET" "$VOKUN_COLOR_DIM" "$VOKUN_COLOR_RESET"
+    printf '    %s4)%s  Cancel\n\n' "$VOKUN_COLOR_BOLD" "$VOKUN_COLOR_RESET"
+    printf '  Choice [1]: '
+
+    local reply
+    read -r reply
+    reply="${reply:-1}"
+
+    case "$reply" in
+        1)
+            vokun::core::bootstrap_aur_helper "paru"
+            return $?
+            ;;
+        2)
+            vokun::core::bootstrap_aur_helper "yay"
+            return $?
+            ;;
+        3)
+            # Signal manual mode — caller handles per-package install
+            return 2
+            ;;
+        *)
+            vokun::core::info "Cancelled."
+            return 1
+            ;;
+    esac
+}
+
+# Ensure an AUR helper is available, prompting if needed
+# Returns the helper name via stdout, or exits with error
+# Return codes: 0 = helper available, 1 = cancelled, 2 = manual mode
+vokun::core::require_aur_helper() {
+    local context="${1:-AUR operation}"
+    local aur_helper
+    aur_helper=$(vokun::core::get_aur_helper)
+
+    if [[ -n "$aur_helper" ]]; then
+        printf '%s' "$aur_helper"
+        return 0
+    fi
+
+    vokun::core::prompt_aur_helper "$context"
+    local rc=$?
+
+    if [[ $rc -eq 0 ]]; then
+        # Helper was installed — return it
+        printf '%s' "$(vokun::core::get_aur_helper)"
+        return 0
+    fi
+
+    return $rc
+}
+
 # --- Pacman wrapper ---
 
 # Run a pacman command with transparency
@@ -353,13 +518,13 @@ ${VOKUN_COLOR_BOLD}BUNDLE COMMANDS${VOKUN_COLOR_RESET}
 ${VOKUN_COLOR_BOLD}PACKAGE COMMANDS${VOKUN_COLOR_RESET}
     ${VOKUN_COLOR_CYAN}get${VOKUN_COLOR_RESET}     <pkg>            Install a package ${VOKUN_COLOR_DIM}(pacman -S)${VOKUN_COLOR_RESET}
     ${VOKUN_COLOR_CYAN}yeet${VOKUN_COLOR_RESET}    <pkg>            Remove a package ${VOKUN_COLOR_DIM}(pacman -Rns)${VOKUN_COLOR_RESET}
-    ${VOKUN_COLOR_CYAN}find${VOKUN_COLOR_RESET}    <query>          Search for packages ${VOKUN_COLOR_DIM}(pacman -Ss)${VOKUN_COLOR_RESET}
-    ${VOKUN_COLOR_CYAN}which${VOKUN_COLOR_RESET}   <pkg>            Show package info ${VOKUN_COLOR_DIM}(pacman -Qi)${VOKUN_COLOR_RESET}
+    ${VOKUN_COLOR_CYAN}find${VOKUN_COLOR_RESET}    <query>          Search for packages ${VOKUN_COLOR_DIM}(pacman -Ss) [--aur] [--pick]${VOKUN_COLOR_RESET}
+    ${VOKUN_COLOR_CYAN}which${VOKUN_COLOR_RESET}   <pkg>            Show package info ${VOKUN_COLOR_DIM}(pacman -Qi) [--remote]${VOKUN_COLOR_RESET}
     ${VOKUN_COLOR_CYAN}owns${VOKUN_COLOR_RESET}    <file>           Find which package owns a file ${VOKUN_COLOR_DIM}(pacman -Qo)${VOKUN_COLOR_RESET}
-    ${VOKUN_COLOR_CYAN}update${VOKUN_COLOR_RESET}                   Full system update ${VOKUN_COLOR_DIM}(pacman -Syu)${VOKUN_COLOR_RESET}
+    ${VOKUN_COLOR_CYAN}update${VOKUN_COLOR_RESET}                   Full system update ${VOKUN_COLOR_DIM}(pacman -Syu) [--aur] [--aur-only]${VOKUN_COLOR_RESET}
 
 ${VOKUN_COLOR_BOLD}MAINTENANCE${VOKUN_COLOR_RESET}
-    ${VOKUN_COLOR_YELLOW}orphans${VOKUN_COLOR_RESET}                  List orphaned packages
+    ${VOKUN_COLOR_YELLOW}orphans${VOKUN_COLOR_RESET}                  List orphaned packages ${VOKUN_COLOR_DIM}[--clean] [--deep]${VOKUN_COLOR_RESET}
     ${VOKUN_COLOR_YELLOW}cache${VOKUN_COLOR_RESET}                    Manage package cache
     ${VOKUN_COLOR_YELLOW}size${VOKUN_COLOR_RESET}                     List packages by installed size
     ${VOKUN_COLOR_YELLOW}recent${VOKUN_COLOR_RESET}                   Show recently installed packages
@@ -456,12 +621,13 @@ EOF
             ;;
         list)
             cat <<EOF
-${VOKUN_COLOR_BOLD}vokun list${VOKUN_COLOR_RESET} [--installed]
+${VOKUN_COLOR_BOLD}vokun list${VOKUN_COLOR_RESET} [--installed] [--deps]
 
 List all available bundles, grouped by tags. Installed bundles are highlighted.
 
 ${VOKUN_COLOR_BOLD}Flags:${VOKUN_COLOR_RESET}
     --installed    Show only installed bundles
+    --deps         List packages installed as dependencies ${VOKUN_COLOR_DIM}(pacman -Qd)${VOKUN_COLOR_RESET}
 EOF
             ;;
         info)
@@ -519,7 +685,7 @@ EOF
             ;;
         find)
             cat <<EOF
-${VOKUN_COLOR_BOLD}vokun find${VOKUN_COLOR_RESET} <query> [--aur]
+${VOKUN_COLOR_BOLD}vokun find${VOKUN_COLOR_RESET} <query> [--aur] [--pick]
 
 Search for packages in the repositories (and optionally AUR).
 
@@ -527,19 +693,28 @@ ${VOKUN_COLOR_DIM}Equivalent to: pacman -Ss <query>${VOKUN_COLOR_RESET}
 
 ${VOKUN_COLOR_BOLD}Flags:${VOKUN_COLOR_RESET}
     --aur    Include AUR results (requires paru/yay)
+    --pick   Interactively select packages to install (fzf or numbered menu)
 
 ${VOKUN_COLOR_BOLD}Examples:${VOKUN_COLOR_RESET}
     vokun find terminal
     vokun find --aur spotify
+    vokun find --aur --pick terminal    # Search, pick, then install
 EOF
             ;;
         which)
             cat <<EOF
-${VOKUN_COLOR_BOLD}vokun which${VOKUN_COLOR_RESET} <package>
+${VOKUN_COLOR_BOLD}vokun which${VOKUN_COLOR_RESET} <package> [--remote]
 
-Show detailed information about an installed package.
+Show detailed information about a package.
 
 ${VOKUN_COLOR_DIM}Equivalent to: pacman -Qi <package>${VOKUN_COLOR_RESET}
+
+${VOKUN_COLOR_BOLD}Flags:${VOKUN_COLOR_RESET}
+    --remote    Query remote repo/AUR info instead of local ${VOKUN_COLOR_DIM}(pacman -Si)${VOKUN_COLOR_RESET}
+
+${VOKUN_COLOR_BOLD}Examples:${VOKUN_COLOR_RESET}
+    vokun which neovim                # Local info (installed)
+    vokun which --remote neovim       # Remote repo info
 EOF
             ;;
         owns)
@@ -556,20 +731,27 @@ EOF
             ;;
         update)
             cat <<EOF
-${VOKUN_COLOR_BOLD}vokun update${VOKUN_COLOR_RESET} [--aur] [--check]
+${VOKUN_COLOR_BOLD}vokun update${VOKUN_COLOR_RESET} [--aur] [--aur-only] [--check]
 
 Perform a full system update. Syncs repos and upgrades all packages.
 
 ${VOKUN_COLOR_DIM}Equivalent to: sudo pacman -Syu${VOKUN_COLOR_RESET}
 
 ${VOKUN_COLOR_BOLD}Flags:${VOKUN_COLOR_RESET}
-    --aur    Also update AUR packages (requires paru/yay)
-    --check  Show available upgrades without installing
+    --aur       Also update AUR packages (requires paru/yay)
+    --aur-only  Update only AUR packages ${VOKUN_COLOR_DIM}(paru/yay -Sua)${VOKUN_COLOR_RESET}
+    --check     Show available upgrades without installing
+
+${VOKUN_COLOR_BOLD}Examples:${VOKUN_COLOR_RESET}
+    vokun update                       # Repos only
+    vokun update --aur                 # Repos + AUR
+    vokun update --aur-only            # AUR packages only
+    vokun update --check --aur-only    # Check AUR updates only
 EOF
             ;;
         orphans)
             cat <<EOF
-${VOKUN_COLOR_BOLD}vokun orphans${VOKUN_COLOR_RESET} [--clean]
+${VOKUN_COLOR_BOLD}vokun orphans${VOKUN_COLOR_RESET} [--clean] [--deep]
 
 List packages that were installed as dependencies but are no longer required.
 
@@ -577,6 +759,7 @@ ${VOKUN_COLOR_DIM}Equivalent to: pacman -Qdt${VOKUN_COLOR_RESET}
 
 ${VOKUN_COLOR_BOLD}Flags:${VOKUN_COLOR_RESET}
     --clean    Remove all orphaned packages
+    --deep     Deep cleanup including AUR build deps ${VOKUN_COLOR_DIM}(paru/yay -c)${VOKUN_COLOR_RESET}
 EOF
             ;;
         cache)
@@ -641,6 +824,7 @@ ${VOKUN_COLOR_BOLD}Actions:${VOKUN_COLOR_RESET}
     add <bundle> <pkg> ...     Add packages to a bundle
     rm <bundle> <pkg> ...      Remove packages from a bundle
     edit <bundle>              Edit a bundle (fzf picker or \$EDITOR)
+    edit <bundle> --editor     Open bundle TOML in \$EDITOR directly
     delete <name>              Delete a custom bundle
 EOF
             ;;

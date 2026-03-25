@@ -76,9 +76,38 @@ complete -c vokun -n "__fish_seen_subcommand_from remove"  -l dry-run  -d "Previ
 complete -c vokun -n "__fish_seen_subcommand_from remove"  -l untrack  -d "Remove from tracking only, keep packages"
 complete -c vokun -n "__fish_seen_subcommand_from remove"  -l all      -d "Remove all packages including pre-existing"
 
+# find completes with flags
+complete -c vokun -n "__fish_seen_subcommand_from find"    -l aur    -d "Include AUR results"
+complete -c vokun -n "__fish_seen_subcommand_from find"    -l pick   -d "Interactively select packages to install"
+
+# which completes with flags
+complete -c vokun -n "__fish_seen_subcommand_from which"   -l remote -d "Query remote repo/AUR info"
+
+# yeet completes with flags
+complete -c vokun -n "__fish_seen_subcommand_from yeet"    -l untrack -d "Remove from bundle tracking only"
+
+# cache completes with flags
+complete -c vokun -n "__fish_seen_subcommand_from cache"   -l clean   -d "Keep last 2 versions"
+complete -c vokun -n "__fish_seen_subcommand_from cache"   -l purge   -d "Remove all cached packages"
+
+# size completes with flags
+complete -c vokun -n "__fish_seen_subcommand_from size"    -l top     -d "Show top N packages"
+
+# recent completes with flags
+complete -c vokun -n "__fish_seen_subcommand_from recent"  -l count   -d "Number of entries to show"
+
 # update completes with flags
-complete -c vokun -n "__fish_seen_subcommand_from update"  -l aur    -d "Include AUR packages"
-complete -c vokun -n "__fish_seen_subcommand_from update"  -l check  -d "Show available upgrades without installing"
+complete -c vokun -n "__fish_seen_subcommand_from update"  -l aur      -d "Include AUR packages"
+complete -c vokun -n "__fish_seen_subcommand_from update"  -l aur-only -d "Update only AUR packages"
+complete -c vokun -n "__fish_seen_subcommand_from update"  -l check    -d "Show available upgrades without installing"
+
+# orphans completes with flags
+complete -c vokun -n "__fish_seen_subcommand_from orphans" -l clean  -d "Remove all orphaned packages"
+complete -c vokun -n "__fish_seen_subcommand_from orphans" -l deep   -d "Deep cleanup including AUR build deps"
+
+# list completes with flags
+complete -c vokun -n "__fish_seen_subcommand_from list"    -l installed -d "Show only installed bundles"
+complete -c vokun -n "__fish_seen_subcommand_from list"    -l deps      -d "List packages installed as dependencies"
 
 # select completes with installed bundle names
 complete -c vokun -n "__fish_seen_subcommand_from select"  -a "(vokun list --names-only 2>/dev/null)" -d "Installed bundle"
@@ -103,8 +132,9 @@ complete -c vokun -n "__fish_seen_subcommand_from export"  -l all     -d "Export
 complete -c vokun -n "__fish_seen_subcommand_from sync"    -l auto  -d "Auto-reconcile without prompting"
 complete -c vokun -n "__fish_seen_subcommand_from sync"    -l quiet -d "Suppress informational output"
 
-# bundle completes with subcommands
+# bundle completes with subcommands and flags
 complete -c vokun -n "__fish_seen_subcommand_from bundle"  -a "create add rm edit delete" -d "Bundle action"
+complete -c vokun -n "__fish_seen_subcommand_from bundle"  -l editor -d "Open bundle TOML in \$EDITOR directly"
 
 # log completes with --count flag
 complete -c vokun -n "__fish_seen_subcommand_from log"      -l count -d "Number of entries to show"
@@ -115,6 +145,7 @@ complete -c vokun -n "__fish_seen_subcommand_from dotfiles" -a "init apply push 
 # snapshot completes with subcommands and snapshot names
 complete -c vokun -n "__fish_seen_subcommand_from snapshot" -a "create list diff restore delete" -d "Snapshot action"
 complete -c vokun -n "__fish_seen_subcommand_from snapshot" -l dry-run -d "Preview without making changes"
+complete -c vokun -n "__fish_seen_subcommand_from snapshot" -l yes     -d "Skip confirmation prompts"
 
 # help completes with subcommand names
 complete -c vokun -n "__fish_seen_subcommand_from help"    -a "$subcommands" -d "Subcommand"

@@ -147,18 +147,27 @@ vokun::bundle_mgmt::create() {
 
     # Optionally select packages with fzf
     if command -v fzf &>/dev/null && [[ "${VOKUN_FZF:-true}" == "true" ]]; then
-        vokun::core::info "Select packages with fzf (TAB to select, ENTER to confirm)"
+        vokun::core::info "Select packages with fzf (TAB to select, ESC to skip)"
         local -a selected
-        mapfile -t selected < <(pacman -Slq 2>/dev/null | fzf --multi --prompt="Select packages> " --preview="pacman -Si {1} 2>/dev/null" || true)
+        mapfile -t selected < <(pacman -Slq 2>/dev/null | fzf --multi \
+            --prompt="Select packages (TAB to pick)> " \
+            --header="TAB = toggle selection, ENTER = confirm, ESC = skip without adding" \
+            --preview="pacman -Si {1} 2>/dev/null" \
+            2>/dev/null || true)
 
-        if [[ ${#selected[@]} -gt 0 ]]; then
-            for pkg in "${selected[@]}"; do
-                [[ -z "$pkg" ]] && continue
+        # Filter empty entries
+        local -a valid=()
+        for pkg in "${selected[@]}"; do
+            [[ -n "$pkg" ]] && valid+=("$pkg")
+        done
+
+        if [[ ${#valid[@]} -gt 0 ]]; then
+            for pkg in "${valid[@]}"; do
                 local desc
                 desc=$(vokun::bundle_mgmt::_pkg_description "$pkg")
                 printf '%s = "%s"\n' "$pkg" "$desc" >> "$bundle_file"
             done
-            vokun::core::success "Created bundle '$name' with ${#selected[@]} package(s)"
+            vokun::core::success "Created bundle '$name' with ${#valid[@]} package(s)"
         else
             vokun::core::success "Created empty bundle '$name'"
         fi
@@ -265,10 +274,18 @@ vokun::bundle_mgmt::rm() {
 # --- vokun bundle edit ---
 
 vokun::bundle_mgmt::edit() {
-    local bundle_name="${1:-}"
+    local bundle_name=""
+    local force_editor=false
+
+    for arg in "$@"; do
+        case "$arg" in
+            --editor) force_editor=true ;;
+            *) bundle_name="$arg" ;;
+        esac
+    done
 
     if [[ -z "$bundle_name" ]]; then
-        vokun::core::error "Usage: vokun bundle edit <bundle>"
+        vokun::core::error "Usage: vokun bundle edit <bundle> [--editor]"
         return 1
     fi
 
@@ -283,7 +300,7 @@ vokun::bundle_mgmt::edit() {
         file=$(vokun::bundle_mgmt::_copy_to_custom "$file")
     fi
 
-    if command -v fzf &>/dev/null && [[ "${VOKUN_FZF:-true}" == "true" ]]; then
+    if [[ "$force_editor" == false ]] && command -v fzf &>/dev/null && [[ "${VOKUN_FZF:-true}" == "true" ]]; then
         # Parse current bundle packages
         vokun::toml::parse "$file"
         local pkg_keys
@@ -298,7 +315,7 @@ vokun::bundle_mgmt::edit() {
             done <<< "$pkg_keys"
         fi
 
-        vokun::core::info "Toggle packages with TAB, confirm with ENTER"
+        vokun::core::info "Toggle packages with TAB, confirm with ENTER, ESC to cancel"
 
         # Build fzf input: all available packages from pacman
         local -a selected
@@ -308,7 +325,7 @@ vokun::bundle_mgmt::edit() {
                 { print $0 }
             ' | fzf --multi --prompt="Edit ${bundle_name}> " \
                      --preview="pacman -Si {1} 2>/dev/null" \
-                     --header="Current packages are listed. TAB to toggle." \
+                     --header="TAB = toggle selection, ENTER = confirm, ESC = cancel" \
                      --bind="ctrl-a:select-all,ctrl-d:deselect-all" \
                      2>/dev/null || true
         )

@@ -85,6 +85,7 @@ vokun remove  bundle1 bundle2              # Remove multiple bundles
 vokun select  <bundle>                      # Change pick-one selections for a bundle
 vokun list                                  # List all available bundles
 vokun list --installed                      # List installed bundles only
+vokun list --deps                           # List packages installed as dependencies
 vokun info    <bundle>                      # Show bundle contents without installing
 vokun search  <keyword>                     # Search bundles by name, tag, or package
 ```
@@ -101,12 +102,16 @@ vokun yeet    <pkg>             # Remove with deps/configs   (pacman -Rns)
 vokun yeet    <pkg> --untrack   # Remove from bundle tracking only
 vokun find    <query>           # Search repos               (pacman -Ss)
 vokun find    <query> --aur     # Search repos + AUR
+vokun find    <query> --pick    # Search and interactively select to install
 vokun which   <pkg>             # Info on installed package   (pacman -Qi)
+vokun which   <pkg> --remote    # Info on remote/uninstalled  (pacman -Si)
 vokun owns    <file>            # Which package owns a file   (pacman -Qo)
 vokun update                    # Full system update          (pacman -Syu)
 vokun update  --aur             # Include AUR packages
+vokun update  --aur-only        # Update only AUR packages    (paru/yay -Sua)
 vokun update  --check           # Show available upgrades     (checkupdates)
 vokun update  --check --aur     # Include AUR in check        (paru -Qu)
+vokun update  --check --aur-only # Check only AUR updates
 ```
 
 ### Action log
@@ -154,6 +159,7 @@ vokun snapshot delete <name>    # Remove a snapshot
 ```bash
 vokun orphans                   # List orphaned packages
 vokun orphans --clean           # Remove orphans
+vokun orphans --deep            # Deep cleanup incl. AUR build deps (paru/yay -c)
 vokun cache                     # Show cache size and stats
 vokun cache   --clean           # Keep last 2 versions (paccache -rk2)
 vokun cache   --purge           # Remove all cached packages
