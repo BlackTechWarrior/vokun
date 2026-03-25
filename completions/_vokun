@@ -160,6 +160,9 @@ _vokun() {
                     _arguments \
                         '--installed[Show only installs]' \
                         '--removed[Show only removals]' \
+                        '--upgraded[Show only upgrades]' \
+                        '--downgraded[Show only downgrades]' \
+                        '--search[Filter by package name]' \
                         '--count[Number of entries]:count:'
                     ;;
                 help)

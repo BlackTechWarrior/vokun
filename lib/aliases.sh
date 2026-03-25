@@ -398,29 +398,32 @@ vokun::aliases::explicit() {
 
 # --- vokun history ---
 vokun::aliases::history() {
-    local count=20
+    local count=50
     local filter=""
+    local -a search_terms=()
+    local collecting_search=false
+    local collecting_count=false
 
     for arg in "$@"; do
-        case "$arg" in
-            --installed) filter="installed" ;;
-            --removed) filter="removed" ;;
-            --count)  ;;
-            *)
-                if [[ "$filter" == "" && "$arg" =~ ^[0-9]+$ ]]; then
-                    count="$arg"
-                fi
-                ;;
-        esac
-    done
-
-    # Handle --count N
-    local prev=""
-    for arg in "$@"; do
-        if [[ "$prev" == "--count" ]]; then
+        if [[ "$collecting_count" == true ]]; then
             count="$arg"
+            collecting_count=false
+            continue
         fi
-        prev="$arg"
+        if [[ "$collecting_search" == true ]]; then
+            case "$arg" in
+                --*) collecting_search=false ;;
+                *)   search_terms+=("$arg"); continue ;;
+            esac
+        fi
+        case "$arg" in
+            --installed)  filter="installed" ;;
+            --removed)    filter="removed" ;;
+            --upgraded)   filter="upgraded" ;;
+            --downgraded) filter="downgraded" ;;
+            --search)     collecting_search=true ;;
+            --count)      collecting_count=true ;;
+        esac
     done
 
     local log_file="/var/log/pacman.log"
@@ -429,40 +432,71 @@ vokun::aliases::history() {
         return 1
     fi
 
-    printf '\n%sPacman History%s %s(last %d entries)%s\n' \
+    local header="last $count entries"
+    if [[ ${#search_terms[@]} -gt 0 ]]; then
+        header="search: ${search_terms[*]}"
+    fi
+
+    printf '\n%sPacman History%s %s(%s)%s\n' \
         "$VOKUN_COLOR_BOLD" "$VOKUN_COLOR_RESET" \
-        "$VOKUN_COLOR_DIM" "$count" "$VOKUN_COLOR_RESET"
+        "$VOKUN_COLOR_DIM" "$header" "$VOKUN_COLOR_RESET"
     printf '%s\n\n' "$(printf '%.0s─' {1..50})"
 
+    # Build action filter pattern
     local grep_pattern
     case "$filter" in
-        installed) grep_pattern='\[ALPM\] installed' ;;
-        removed)   grep_pattern='\[ALPM\] removed' ;;
-        *)         grep_pattern='\[ALPM\] \(installed\|removed\|upgraded\|downgraded\)' ;;
+        installed)  grep_pattern='\[ALPM\] installed' ;;
+        removed)    grep_pattern='\[ALPM\] removed' ;;
+        upgraded)   grep_pattern='\[ALPM\] upgraded' ;;
+        downgraded) grep_pattern='\[ALPM\] downgraded' ;;
+        *)          grep_pattern='\[ALPM\] \(installed\|removed\|upgraded\|downgraded\)' ;;
     esac
 
-    grep -a "$grep_pattern" "$log_file" 2>/dev/null | tail -n "$count" | while IFS= read -r line; do
-        local ts action
+    # Get matching lines, then filter by search terms if any
+    local results
+    results=$(grep -a "$grep_pattern" "$log_file" 2>/dev/null || true)
+
+    if [[ ${#search_terms[@]} -gt 0 && -n "$results" ]]; then
+        # Build a grep pattern that matches any search term
+        local search_pattern
+        search_pattern=$(printf '%s\|' "${search_terms[@]}")
+        search_pattern="${search_pattern%\\|}"  # trim trailing \|
+        results=$(printf '%s' "$results" | grep -i "$search_pattern" || true)
+    fi
+
+    if [[ -z "$results" ]]; then
+        vokun::core::info "No matching entries found."
+        return 0
+    fi
+
+    local match_count
+    match_count=$(printf '%s\n' "$results" | wc -l)
+
+    printf '%s' "$results" | tail -n "$count" | while IFS= read -r line; do
+        [[ -z "$line" ]] && continue
+        local ts
         ts=$(printf '%s' "$line" | grep -oP '^\[\K[^\]]+' || true)
+        local detail
+        detail=$(printf '%s' "$line" | sed 's/.*\] //')
         # Color-code by action
         if [[ "$line" == *"installed"* ]]; then
             printf '  %s%s%s  %s+%s %s\n' "$VOKUN_COLOR_DIM" "$ts" "$VOKUN_COLOR_RESET" \
-                "$VOKUN_COLOR_GREEN" "$VOKUN_COLOR_RESET" \
-                "$(printf '%s' "$line" | sed 's/.*\] //')"
+                "$VOKUN_COLOR_GREEN" "$VOKUN_COLOR_RESET" "$detail"
         elif [[ "$line" == *"removed"* ]]; then
             printf '  %s%s%s  %s-%s %s\n' "$VOKUN_COLOR_DIM" "$ts" "$VOKUN_COLOR_RESET" \
-                "$VOKUN_COLOR_RED" "$VOKUN_COLOR_RESET" \
-                "$(printf '%s' "$line" | sed 's/.*\] //')"
+                "$VOKUN_COLOR_RED" "$VOKUN_COLOR_RESET" "$detail"
         elif [[ "$line" == *"upgraded"* ]]; then
             printf '  %s%s%s  %s↑%s %s\n' "$VOKUN_COLOR_DIM" "$ts" "$VOKUN_COLOR_RESET" \
-                "$VOKUN_COLOR_CYAN" "$VOKUN_COLOR_RESET" \
-                "$(printf '%s' "$line" | sed 's/.*\] //')"
+                "$VOKUN_COLOR_CYAN" "$VOKUN_COLOR_RESET" "$detail"
         elif [[ "$line" == *"downgraded"* ]]; then
             printf '  %s%s%s  %s↓%s %s\n' "$VOKUN_COLOR_DIM" "$ts" "$VOKUN_COLOR_RESET" \
-                "$VOKUN_COLOR_YELLOW" "$VOKUN_COLOR_RESET" \
-                "$(printf '%s' "$line" | sed 's/.*\] //')"
+                "$VOKUN_COLOR_YELLOW" "$VOKUN_COLOR_RESET" "$detail"
         fi
     done
+
+    if [[ ${#search_terms[@]} -gt 0 ]]; then
+        printf '\n  %s%d match(es) found.%s\n' "$VOKUN_COLOR_DIM" "$match_count" "$VOKUN_COLOR_RESET"
+    fi
 
     printf '\n'
 }

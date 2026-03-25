@@ -701,20 +701,25 @@ EOF
             ;;
         history)
             cat <<EOF
-${VOKUN_COLOR_BOLD}vokun history${VOKUN_COLOR_RESET} [--installed] [--removed] [--count N]
+${VOKUN_COLOR_BOLD}vokun history${VOKUN_COLOR_RESET} [--search term...] [--installed|--removed|--upgraded|--downgraded] [--count N]
 
 Show recent pacman transactions from /var/log/pacman.log. Color-coded by
-action type: installs, removals, upgrades, and downgrades.
+action type. Use --search to find transactions matching specific packages.
 
 ${VOKUN_COLOR_BOLD}Flags:${VOKUN_COLOR_RESET}
-    --installed    Show only package installs
-    --removed      Show only package removals
-    --count N      Number of entries (default: 20)
+    --search term [term...]  Filter by package name (matches any term)
+    --installed              Show only package installs
+    --removed                Show only package removals
+    --upgraded               Show only package upgrades
+    --downgraded             Show only package downgrades
+    --count N                Number of entries (default: 50)
 
 ${VOKUN_COLOR_BOLD}Examples:${VOKUN_COLOR_RESET}
-    vokun history                  # Last 20 transactions
-    vokun history --installed      # Only installs
-    vokun history --count 50       # Last 50 transactions
+    vokun history                              # Last 50 transactions
+    vokun history --installed                  # Only installs
+    vokun history --search nvidia mesa sddm    # Display-related changes
+    vokun history --search plasma --upgraded   # Plasma upgrades only
+    vokun history --count 100                  # More entries
 EOF
             ;;
         hook)

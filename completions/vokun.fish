@@ -46,9 +46,12 @@ complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a history  
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a status    -d "Show system overview and stats"
 
 # history completes with flags
-complete -c vokun -n "__fish_seen_subcommand_from history" -l installed -d "Show only installs"
-complete -c vokun -n "__fish_seen_subcommand_from history" -l removed   -d "Show only removals"
-complete -c vokun -n "__fish_seen_subcommand_from history" -l count     -d "Number of entries"
+complete -c vokun -n "__fish_seen_subcommand_from history" -l installed  -d "Show only installs"
+complete -c vokun -n "__fish_seen_subcommand_from history" -l removed    -d "Show only removals"
+complete -c vokun -n "__fish_seen_subcommand_from history" -l upgraded   -d "Show only upgrades"
+complete -c vokun -n "__fish_seen_subcommand_from history" -l downgraded -d "Show only downgrades"
+complete -c vokun -n "__fish_seen_subcommand_from history" -l search     -d "Filter by package name"
+complete -c vokun -n "__fish_seen_subcommand_from history" -l count      -d "Number of entries"
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a doctor    -d "Run all health checks"
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a help     -d "Show help"
 

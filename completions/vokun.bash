@@ -91,7 +91,7 @@ _vokun() {
             COMPREPLY=( $(compgen -W "--aur --check" -- "$cur") )
             ;;
         history)
-            COMPREPLY=( $(compgen -W "--installed --removed --count" -- "$cur") )
+            COMPREPLY=( $(compgen -W "--installed --removed --upgraded --downgraded --search --count" -- "$cur") )
             ;;
         why|untracked|doctor)
             ;;
