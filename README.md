@@ -159,6 +159,9 @@ vokun cache   --clean           # Keep last 2 versions (paccache -rk2)
 vokun cache   --purge           # Remove all cached packages
 vokun size                      # List packages sorted by installed size
 vokun recent                    # Show recently installed packages
+vokun history                   # Last 50 pacman transactions
+vokun history --search nvidia   # Find nvidia-related changes
+vokun history --upgraded        # Only upgrades
 vokun foreign                   # List AUR/foreign packages
 vokun explicit                  # List explicitly installed packages
 vokun broken                    # Check for broken symlinks and deps

@@ -500,6 +500,34 @@ Without flags, shows cache location, package count, and total size.
 
 Requires `pacman-contrib` for `--clean` and `--purge`.
 
+### vokun history
+
+```
+vokun history [--search term...] [--installed|--removed|--upgraded|--downgraded] [--count N]
+```
+
+Show recent pacman transactions from `/var/log/pacman.log`. Color-coded by
+action type. Use `--search` to find transactions matching specific packages —
+useful for diagnosing issues after a system update.
+
+| Flag | Description |
+|------|-------------|
+| `--search term [term...]` | Filter by package name (matches any term) |
+| `--installed` | Show only package installs |
+| `--removed` | Show only package removals |
+| `--upgraded` | Show only package upgrades |
+| `--downgraded` | Show only package downgrades |
+| `--count N` | Number of entries (default: 50) |
+
+Examples:
+
+```bash
+vokun history                              # Last 50 transactions
+vokun history --search nvidia mesa sddm    # Display-related changes
+vokun history --search plasma --upgraded   # Plasma upgrades only
+vokun history --installed --count 100      # Last 100 installs
+```
+
 ### vokun size
 
 ```
