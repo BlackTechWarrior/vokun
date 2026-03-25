@@ -423,19 +423,21 @@ EOF
             ;;
         remove)
             cat <<EOF
-${VOKUN_COLOR_BOLD}vokun remove${VOKUN_COLOR_RESET} <bundle> [bundle...] [--dry-run] [--untrack]
+${VOKUN_COLOR_BOLD}vokun remove${VOKUN_COLOR_RESET} <bundle> [bundle...] [--dry-run] [--untrack] [--all]
 
-Remove packages that are unique to a bundle (not shared with other installed bundles).
-Shared packages are kept and listed. Supports multiple bundles at once.
+Remove packages that vokun installed for a bundle. Pre-existing packages are
+kept by default. Shared packages are always kept. Supports multiple bundles.
 
 ${VOKUN_COLOR_BOLD}Examples:${VOKUN_COLOR_RESET}
-    vokun remove gaming                       # Remove bundle and its packages
+    vokun remove gaming                       # Remove only what vokun installed
     vokun remove gaming coding                # Remove multiple bundles
     vokun remove sysadmin --untrack           # Remove from tracking only, keep packages
+    vokun remove sysadmin --all               # Remove ALL bundle packages including pre-existing
 
 ${VOKUN_COLOR_BOLD}Flags:${VOKUN_COLOR_RESET}
     --dry-run              Show what would happen without removing
     --untrack              Remove from vokun tracking only, keep packages on system
+    --all                  Remove all packages in the bundle, even pre-existing ones
 EOF
             ;;
         select)

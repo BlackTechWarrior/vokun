@@ -102,17 +102,42 @@ vokun::state::add_bundle() {
 
     local tmp
     tmp=$(mktemp)
+    # installed_by_vokun tracks which packages were actually new (not pre-existing)
+    local new_json="${5:-[]}"
+    if [[ "$new_json" != "["* ]]; then
+        # Convert space-separated to JSON array if not already JSON
+        if [[ -n "$new_json" ]]; then
+            # shellcheck disable=SC2086
+            new_json=$(printf '%s\n' $new_json | jq -R . | jq -s .)
+        else
+            new_json='[]'
+        fi
+    fi
+
     jq --arg b "$bundle" \
        --arg ts "$timestamp" \
        --arg src "$source" \
        --argjson pkgs "$pkg_json" \
        --argjson skip "$skipped_json" \
+       --argjson new "$new_json" \
        '.installed_bundles[$b] = {
             installed_at: $ts,
             packages: $pkgs,
             skipped: $skip,
-            source: $src
+            source: $src,
+            installed_by_vokun: $new
         }' "$VOKUN_STATE_FILE" > "$tmp" && mv "$tmp" "$VOKUN_STATE_FILE"
+}
+
+# Get packages that were actually installed by vokun (not pre-existing)
+vokun::state::get_new_packages() {
+    local bundle="$1"
+
+    if ! command -v jq &>/dev/null; then
+        return
+    fi
+
+    jq -r --arg b "$bundle" '.installed_bundles[$b].installed_by_vokun[]? // empty' "$VOKUN_STATE_FILE" 2>/dev/null
 }
 
 # Save selections for a bundle (category -> chosen package)

@@ -1019,10 +1019,10 @@ vokun::bundles::install() {
 
     if [[ $total -eq 0 ]]; then
         vokun::core::success "All packages are already installed!"
-        # Still record the bundle in state
+        # Still record the bundle in state — nothing was newly installed
         local all_pkgs
         all_pkgs=$(printf '%s ' "${already_installed[@]}" "${optional_packages[@]}")
-        vokun::state::add_bundle "$name" "$all_pkgs" "" "default"
+        vokun::state::add_bundle "$name" "$all_pkgs" "" "default" "[]"
         return 0
     fi
 
@@ -1107,7 +1107,10 @@ vokun::bundles::install() {
         done
     fi
 
-    vokun::state::add_bundle "$name" "$all_pkgs" "$skipped_pkgs" "default"
+    # Track which packages were actually new (installed by vokun, not pre-existing)
+    local new_pkgs
+    new_pkgs=$(printf '%s ' "${repo_packages[@]}" "${aur_packages[@]}")
+    vokun::state::add_bundle "$name" "$all_pkgs" "$skipped_pkgs" "default" "$new_pkgs"
 
     # Save selections if any were made
     if [[ ${#select_pairs[@]} -gt 0 ]]; then
@@ -1128,32 +1131,32 @@ vokun::bundles::install() {
 vokun::bundles::remove() {
     local dry_run=false
     local untrack_only=false
+    local remove_all=false
     local -a names=()
 
     for arg in "$@"; do
         case "$arg" in
             --dry-run) dry_run=true ;;
             --untrack) untrack_only=true ;;
+            --all) remove_all=true ;;
             *) names+=("$arg") ;;
         esac
     done
 
     if [[ ${#names[@]} -eq 0 ]]; then
-        vokun::core::error "Usage: vokun remove <bundle> [bundle...] [--dry-run] [--untrack]"
+        vokun::core::error "Usage: vokun remove <bundle> [bundle...] [--dry-run] [--untrack] [--all]"
         return 1
     fi
 
     # Handle multiple bundles
     if [[ ${#names[@]} -gt 1 ]]; then
+        local -a flags=()
+        [[ "$untrack_only" == true ]] && flags+=("--untrack")
+        [[ "$dry_run" == true ]] && flags+=("--dry-run")
+        [[ "$remove_all" == true ]] && flags+=("--all")
         local bundle_name
         for bundle_name in "${names[@]}"; do
-            if [[ "$untrack_only" == true ]]; then
-                vokun::bundles::remove "$bundle_name" --untrack
-            elif [[ "$dry_run" == true ]]; then
-                vokun::bundles::remove "$bundle_name" --dry-run
-            else
-                vokun::bundles::remove "$bundle_name"
-            fi
+            vokun::bundles::remove "$bundle_name" "${flags[@]}"
         done
         return
     fi
@@ -1173,30 +1176,58 @@ vokun::bundles::remove() {
         return 0
     fi
 
-    # Get packages in this bundle from state
-    local -a bundle_pkgs
-    mapfile -t bundle_pkgs < <(vokun::state::get_bundle_packages "$name")
+    # Get packages — default: only those vokun actually installed
+    # --all: remove all packages in the bundle regardless
+    local -a candidate_pkgs
+    if [[ "$remove_all" == true ]]; then
+        mapfile -t candidate_pkgs < <(vokun::state::get_bundle_packages "$name")
+    else
+        # Check if installed_by_vokun field exists in state
+        local has_new_field
+        has_new_field=$(jq -r --arg b "$name" '.installed_bundles[$b] | has("installed_by_vokun")' "$VOKUN_STATE_FILE" 2>/dev/null || echo "false")
 
-    if [[ ${#bundle_pkgs[@]} -eq 0 ]]; then
-        vokun::core::warn "No packages tracked for bundle '$name'"
+        if [[ "$has_new_field" == "true" ]]; then
+            # New state format: only remove what vokun installed
+            mapfile -t candidate_pkgs < <(vokun::state::get_new_packages "$name")
+        else
+            # Old state format (no installed_by_vokun field): fall back to all packages
+            mapfile -t candidate_pkgs < <(vokun::state::get_bundle_packages "$name")
+        fi
+    fi
+
+    if [[ ${#candidate_pkgs[@]} -eq 0 ]]; then
+        vokun::core::info "No packages to remove (all were pre-existing on your system)."
         vokun::state::remove_bundle "$name"
+        vokun::core::success "Bundle '$name' removed from tracking."
         return 0
     fi
 
     # Find shared packages (in other bundles too)
     local -a shared_pkgs
-    mapfile -t shared_pkgs < <(vokun::state::get_shared_packages "$name" "${bundle_pkgs[@]}")
+    mapfile -t shared_pkgs < <(vokun::state::get_shared_packages "$name" "${candidate_pkgs[@]}")
 
     # Find unique packages (safe to remove)
     local -a unique_pkgs=()
     local -a kept_pkgs=()
-    for pkg in "${bundle_pkgs[@]}"; do
+    local -a pre_existing=()
+    for pkg in "${candidate_pkgs[@]}"; do
         if vokun::core::in_array "$pkg" "${shared_pkgs[@]}"; then
             kept_pkgs+=("$pkg")
         elif vokun::core::is_pkg_installed "$pkg"; then
             unique_pkgs+=("$pkg")
         fi
     done
+
+    # Show pre-existing packages that won't be touched (only in default mode)
+    if [[ "$remove_all" != true ]]; then
+        local -a all_pkgs
+        mapfile -t all_pkgs < <(vokun::state::get_bundle_packages "$name")
+        for pkg in "${all_pkgs[@]}"; do
+            if ! vokun::core::in_array "$pkg" "${candidate_pkgs[@]}" && vokun::core::is_pkg_installed "$pkg"; then
+                pre_existing+=("$pkg")
+            fi
+        done
+    fi
 
     printf '\n%sRemoving bundle: %s%s\n' "$VOKUN_COLOR_BOLD" "$name" "$VOKUN_COLOR_RESET"
     printf '%s\n' "$(printf '%.0s─' {1..50})"
@@ -1211,6 +1242,11 @@ vokun::bundles::remove() {
     if [[ ${#kept_pkgs[@]} -gt 0 ]]; then
         printf '\n  %sKept (shared with other bundles):%s %s\n' \
             "$VOKUN_COLOR_DIM" "$VOKUN_COLOR_RESET" "${kept_pkgs[*]}"
+    fi
+
+    if [[ ${#pre_existing[@]} -gt 0 ]]; then
+        printf '\n  %sKept (pre-existing, not installed by vokun):%s %s\n' \
+            "$VOKUN_COLOR_DIM" "$VOKUN_COLOR_RESET" "${pre_existing[*]}"
     fi
 
     if [[ ${#unique_pkgs[@]} -eq 0 ]]; then
