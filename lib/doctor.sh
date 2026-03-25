@@ -157,7 +157,9 @@ vokun::doctor::run() {
     local cache_dir="/var/cache/pacman/pkg"
     if [[ -d "$cache_dir" ]]; then
         local cache_size_bytes
-        cache_size_bytes=$(du -sb "$cache_dir" 2>/dev/null | awk '{print $1}' || echo 0)
+        cache_size_bytes=$(du -sb "$cache_dir" 2>/dev/null | tail -1 | awk '{print $1}' || echo 0)
+        # Ensure it's a valid number
+        [[ "$cache_size_bytes" =~ ^[0-9]+$ ]] || cache_size_bytes=0
         # Default threshold: 5 GB
         local cache_threshold=$((5 * 1024 * 1024 * 1024))
 
