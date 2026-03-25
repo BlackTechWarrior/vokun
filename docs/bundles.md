@@ -130,7 +130,7 @@ post_remove = ["echo 'Cleanup complete.'"]
 
    ```bash
    mkdir -p ~/.config/vokun/bundles/custom
-   nano ~/.config/vokun/bundles/custom/my-tools.toml
+   ${EDITOR:-nano} ~/.config/vokun/bundles/custom/my-tools.toml
    ```
 
 2. Write the bundle definition following the format above.
