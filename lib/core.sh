@@ -366,6 +366,7 @@ ${VOKUN_COLOR_BOLD}MAINTENANCE${VOKUN_COLOR_RESET}
     ${VOKUN_COLOR_YELLOW}foreign${VOKUN_COLOR_RESET}                  List AUR/foreign packages
     ${VOKUN_COLOR_YELLOW}explicit${VOKUN_COLOR_RESET}                 List explicitly installed packages
     ${VOKUN_COLOR_YELLOW}broken${VOKUN_COLOR_RESET}                   Check for broken symlinks and missing deps
+    ${VOKUN_COLOR_YELLOW}history${VOKUN_COLOR_RESET}                  Show pacman install/remove/upgrade history
     ${VOKUN_COLOR_YELLOW}check${VOKUN_COLOR_RESET}   <pkg>            Check AUR package trust and integrity
     ${VOKUN_COLOR_YELLOW}diff${VOKUN_COLOR_RESET}    <pkg>            Show AUR package PKGBUILD
 
@@ -696,6 +697,24 @@ ${VOKUN_COLOR_BOLD}vokun broken${VOKUN_COLOR_RESET}
 
 Check system integrity: broken symlinks, missing dependencies, and
 packages with missing files.
+EOF
+            ;;
+        history)
+            cat <<EOF
+${VOKUN_COLOR_BOLD}vokun history${VOKUN_COLOR_RESET} [--installed] [--removed] [--count N]
+
+Show recent pacman transactions from /var/log/pacman.log. Color-coded by
+action type: installs, removals, upgrades, and downgrades.
+
+${VOKUN_COLOR_BOLD}Flags:${VOKUN_COLOR_RESET}
+    --installed    Show only package installs
+    --removed      Show only package removals
+    --count N      Number of entries (default: 20)
+
+${VOKUN_COLOR_BOLD}Examples:${VOKUN_COLOR_RESET}
+    vokun history                  # Last 20 transactions
+    vokun history --installed      # Only installs
+    vokun history --count 50       # Last 50 transactions
 EOF
             ;;
         hook)

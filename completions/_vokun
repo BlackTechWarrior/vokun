@@ -47,6 +47,7 @@ _vokun() {
         'why:Show which bundles include a package'
         'snapshot:Save and restore system snapshots'
         'untracked:List ad-hoc packages not in any bundle'
+        'history:Show pacman transaction history'
         'doctor:Run all health checks'
         'help:Show help'
     )
@@ -155,6 +156,12 @@ _vokun() {
                     )
                     _describe -t snapshot-cmds 'snapshot subcommand' snapshot_cmds
                     ;;
+                history)
+                    _arguments \
+                        '--installed[Show only installs]' \
+                        '--removed[Show only removals]' \
+                        '--count[Number of entries]:count:'
+                    ;;
                 help)
                     local -a help_topics
                     help_topics=(
@@ -164,7 +171,7 @@ _vokun() {
                         'export' 'import' 'broken' 'hook' 'setup'
                         'uninstall' 'bundle' 'sync' 'check' 'diff'
                         'profile' 'log' 'rollback' 'dotfiles'
-                        'why' 'snapshot' 'untracked' 'doctor' 'help'
+                        'why' 'snapshot' 'untracked' 'history' 'doctor' 'help'
                     )
                     _describe -t help-topics 'subcommand' help_topics
                     ;;

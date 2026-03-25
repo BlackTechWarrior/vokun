@@ -148,6 +148,7 @@ case "$command" in
     foreign)    vokun::aliases::foreign "${ARGS[@]}" ;;
     explicit)   vokun::aliases::explicit "${ARGS[@]}" ;;
     broken)     vokun::aliases::broken ;;
+    history)    vokun::aliases::history "${ARGS[@]}" ;;
 
     # AUR inspection
     check)      vokun::aur::check "${ARGS[@]}" ;;

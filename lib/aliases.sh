@@ -396,6 +396,77 @@ vokun::aliases::explicit() {
     pacman -Qe 2>/dev/null
 }
 
+# --- vokun history ---
+vokun::aliases::history() {
+    local count=20
+    local filter=""
+
+    for arg in "$@"; do
+        case "$arg" in
+            --installed) filter="installed" ;;
+            --removed) filter="removed" ;;
+            --count)  ;;
+            *)
+                if [[ "$filter" == "" && "$arg" =~ ^[0-9]+$ ]]; then
+                    count="$arg"
+                fi
+                ;;
+        esac
+    done
+
+    # Handle --count N
+    local prev=""
+    for arg in "$@"; do
+        if [[ "$prev" == "--count" ]]; then
+            count="$arg"
+        fi
+        prev="$arg"
+    done
+
+    local log_file="/var/log/pacman.log"
+    if [[ ! -f "$log_file" ]]; then
+        vokun::core::error "Pacman log not found at $log_file"
+        return 1
+    fi
+
+    printf '\n%sPacman History%s %s(last %d entries)%s\n' \
+        "$VOKUN_COLOR_BOLD" "$VOKUN_COLOR_RESET" \
+        "$VOKUN_COLOR_DIM" "$count" "$VOKUN_COLOR_RESET"
+    printf '%s\n\n' "$(printf '%.0s─' {1..50})"
+
+    local grep_pattern
+    case "$filter" in
+        installed) grep_pattern='\[ALPM\] installed' ;;
+        removed)   grep_pattern='\[ALPM\] removed' ;;
+        *)         grep_pattern='\[ALPM\] \(installed\|removed\|upgraded\|downgraded\)' ;;
+    esac
+
+    grep -a "$grep_pattern" "$log_file" 2>/dev/null | tail -n "$count" | while IFS= read -r line; do
+        local ts action
+        ts=$(printf '%s' "$line" | grep -oP '^\[\K[^\]]+' || true)
+        # Color-code by action
+        if [[ "$line" == *"installed"* ]]; then
+            printf '  %s%s%s  %s+%s %s\n' "$VOKUN_COLOR_DIM" "$ts" "$VOKUN_COLOR_RESET" \
+                "$VOKUN_COLOR_GREEN" "$VOKUN_COLOR_RESET" \
+                "$(printf '%s' "$line" | sed 's/.*\] //')"
+        elif [[ "$line" == *"removed"* ]]; then
+            printf '  %s%s%s  %s-%s %s\n' "$VOKUN_COLOR_DIM" "$ts" "$VOKUN_COLOR_RESET" \
+                "$VOKUN_COLOR_RED" "$VOKUN_COLOR_RESET" \
+                "$(printf '%s' "$line" | sed 's/.*\] //')"
+        elif [[ "$line" == *"upgraded"* ]]; then
+            printf '  %s%s%s  %s↑%s %s\n' "$VOKUN_COLOR_DIM" "$ts" "$VOKUN_COLOR_RESET" \
+                "$VOKUN_COLOR_CYAN" "$VOKUN_COLOR_RESET" \
+                "$(printf '%s' "$line" | sed 's/.*\] //')"
+        elif [[ "$line" == *"downgraded"* ]]; then
+            printf '  %s%s%s  %s↓%s %s\n' "$VOKUN_COLOR_DIM" "$ts" "$VOKUN_COLOR_RESET" \
+                "$VOKUN_COLOR_YELLOW" "$VOKUN_COLOR_RESET" \
+                "$(printf '%s' "$line" | sed 's/.*\] //')"
+        fi
+    done
+
+    printf '\n'
+}
+
 # --- vokun broken ---
 vokun::aliases::broken() {
     local found_issues=false

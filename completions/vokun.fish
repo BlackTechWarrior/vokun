@@ -5,7 +5,7 @@
 complete -c vokun -f
 
 # Subcommands
-set -l subcommands install remove select list info search get yeet find which owns update orphans cache size recent foreign explicit export import broken hook setup uninstall bundle sync check diff profile log rollback dotfiles status why snapshot untracked doctor help
+set -l subcommands install remove select list info search get yeet find which owns update orphans cache size recent foreign explicit export import broken history hook setup uninstall bundle sync check diff profile log rollback dotfiles status why snapshot untracked doctor help
 
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a install  -d "Install a bundle"
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a remove   -d "Remove a bundle"
@@ -42,7 +42,13 @@ complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a dotfiles 
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a why       -d "Show which bundles include a package"
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a snapshot  -d "Save and restore system snapshots"
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a untracked -d "List ad-hoc packages not in any bundle"
+complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a history   -d "Show pacman transaction history"
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a status    -d "Show system overview and stats"
+
+# history completes with flags
+complete -c vokun -n "__fish_seen_subcommand_from history" -l installed -d "Show only installs"
+complete -c vokun -n "__fish_seen_subcommand_from history" -l removed   -d "Show only removals"
+complete -c vokun -n "__fish_seen_subcommand_from history" -l count     -d "Number of entries"
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a doctor    -d "Run all health checks"
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a help     -d "Show help"
 
