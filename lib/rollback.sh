@@ -43,9 +43,22 @@ vokun::rollback::run() {
                 return 0
             fi
 
-            # Use the bundle remove function
-            vokun::bundles::remove "$target"
+            # Only remove packages that were actually installed (from log details),
+            # not the full bundle (which includes already-installed packages)
+            if [[ -n "$details" ]]; then
+                local -a rollback_pkgs
+                # shellcheck disable=SC2086
+                read -ra rollback_pkgs <<< "$details"
+                if [[ ${#rollback_pkgs[@]} -gt 0 ]]; then
+                    vokun::core::run_pacman_only "-Rns" "${rollback_pkgs[@]}" || {
+                        vokun::core::warn "Some packages could not be removed."
+                    }
+                fi
+            fi
+            # Untrack the bundle from state
+            vokun::state::remove_bundle "$target"
             vokun::core::log_action "rollback" "$target" "undid bundle-install"
+            vokun::core::success "Rolled back bundle '$target'."
             ;;
 
         bundle-remove)
