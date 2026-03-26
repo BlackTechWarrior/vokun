@@ -480,7 +480,7 @@ vokun::core::init() {
     # Check for jq (soft dependency)
     if ! command -v jq &>/dev/null; then
         vokun::core::warn "jq is not installed. State tracking will be limited."
-        vokun::core::warn "Install it with: sudo pacman -S jq"
+        vokun::core::warn "Run 'vokun setup' to install recommended dependencies."
     fi
 }
 
@@ -521,6 +521,7 @@ ${VOKUN_COLOR_BOLD}PACKAGE COMMANDS${VOKUN_COLOR_RESET}
     ${VOKUN_COLOR_CYAN}find${VOKUN_COLOR_RESET}    <query>          Search for packages ${VOKUN_COLOR_DIM}(pacman -Ss) [--aur] [--pick]${VOKUN_COLOR_RESET}
     ${VOKUN_COLOR_CYAN}which${VOKUN_COLOR_RESET}   <pkg>            Show package info ${VOKUN_COLOR_DIM}(pacman -Qi) [--remote]${VOKUN_COLOR_RESET}
     ${VOKUN_COLOR_CYAN}owns${VOKUN_COLOR_RESET}    <file>           Find which package owns a file ${VOKUN_COLOR_DIM}(pacman -Qo)${VOKUN_COLOR_RESET}
+    ${VOKUN_COLOR_CYAN}files${VOKUN_COLOR_RESET}   <pkg>            List files installed by a package ${VOKUN_COLOR_DIM}(pacman -Ql)${VOKUN_COLOR_RESET}
     ${VOKUN_COLOR_CYAN}update${VOKUN_COLOR_RESET}                   Full system update ${VOKUN_COLOR_DIM}(pacman -Syu) [--aur] [--aur-only]${VOKUN_COLOR_RESET}
 
 ${VOKUN_COLOR_BOLD}MAINTENANCE${VOKUN_COLOR_RESET}
@@ -654,16 +655,20 @@ EOF
             ;;
         get)
             cat <<EOF
-${VOKUN_COLOR_BOLD}vokun get${VOKUN_COLOR_RESET} <package> [package...]
+${VOKUN_COLOR_BOLD}vokun get${VOKUN_COLOR_RESET} <package> [package...] [--overwrite] [--downgrade]
 
 Install one or more packages. Uses paru/yay if available, otherwise pacman.
 After installing, prompts to add the package to a bundle.
+
+  --overwrite     Reinstall and overwrite conflicting files
+  --downgrade     Downgrade to a previous version (local cache or Arch Linux Archive)
 
 ${VOKUN_COLOR_DIM}Equivalent to: sudo pacman -S <package>${VOKUN_COLOR_RESET}
 
 ${VOKUN_COLOR_BOLD}Examples:${VOKUN_COLOR_RESET}
     vokun get neovim
     vokun get firefox chromium
+    vokun get mesa --downgrade
 EOF
             ;;
         yeet)
@@ -727,6 +732,19 @@ ${VOKUN_COLOR_DIM}Equivalent to: pacman -Qo <file>${VOKUN_COLOR_RESET}
 
 ${VOKUN_COLOR_BOLD}Examples:${VOKUN_COLOR_RESET}
     vokun owns /usr/bin/git
+EOF
+            ;;
+        files)
+            cat <<EOF
+${VOKUN_COLOR_BOLD}vokun files${VOKUN_COLOR_RESET} <package>
+
+List all files installed by a package.
+
+${VOKUN_COLOR_DIM}Equivalent to: pacman -Ql <package>${VOKUN_COLOR_RESET}
+
+${VOKUN_COLOR_BOLD}Examples:${VOKUN_COLOR_RESET}
+    vokun files git
+    vokun files neovim
 EOF
             ;;
         update)

@@ -79,8 +79,8 @@ vokun::sync::run() {
     done
 
     if ! command -v jq &>/dev/null; then
-        vokun::core::error "jq is required for the sync command"
-        vokun::core::log "Install it with: sudo pacman -S jq"
+        vokun::core::error "jq is required for the sync command."
+        vokun::core::log "Run 'vokun setup' to install recommended dependencies."
         return 1
     fi
 
@@ -309,7 +309,7 @@ vokun::sync::_pick_packages() {
     if command -v fzf &>/dev/null && [[ "${VOKUN_FZF:-true}" == "true" ]]; then
         mapfile -t _picked < <(
             printf '%s\n' "${available[@]}" | fzf --multi \
-                --header="TAB to select, ENTER to confirm" \
+                --header="TAB to select, ENTER to confirm, ESC to cancel" \
                 --prompt="Pick packages> " \
                 --no-info 2>/dev/null
         ) || true

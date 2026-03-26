@@ -5,7 +5,7 @@
 complete -c vokun -f
 
 # Subcommands
-set -l subcommands install remove select list info search get yeet find which owns update orphans cache size recent foreign explicit export import broken history hook setup uninstall bundle sync check diff profile log rollback dotfiles status why snapshot untracked doctor help
+set -l subcommands install remove select list info search get yeet find which owns files update orphans cache size recent foreign explicit export import broken history hook setup uninstall bundle sync check diff profile log rollback dotfiles status why snapshot untracked doctor help
 
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a install  -d "Install a bundle"
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a remove   -d "Remove a bundle"
@@ -18,6 +18,7 @@ complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a yeet     
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a find     -d "Find a package"
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a which    -d "Which bundle owns a package"
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a owns     -d "Show package owner"
+complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a files    -d "List files owned by a package"
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a update   -d "Update packages"
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a orphans  -d "List orphaned packages"
 complete -c vokun -n "not __fish_seen_subcommand_from $subcommands" -a cache    -d "Manage package cache"
@@ -78,6 +79,7 @@ complete -c vokun -n "__fish_seen_subcommand_from remove"  -l all      -d "Remov
 
 # get completes with flags
 complete -c vokun -n "__fish_seen_subcommand_from get"    -l overwrite -d "Reinstall and overwrite conflicting files"
+complete -c vokun -n "__fish_seen_subcommand_from get"    -l downgrade -d "Downgrade to a previous version"
 
 # find completes with flags
 complete -c vokun -n "__fish_seen_subcommand_from find"    -l aur    -d "Include AUR results"

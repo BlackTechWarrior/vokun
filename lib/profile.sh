@@ -240,7 +240,7 @@ vokun::profile::cmd_copy() {
     fi
 
     if ! command -v jq &>/dev/null; then
-        vokun::core::error "jq is required for profile copy"
+        vokun::core::error "jq is required for profile copy. Run 'vokun setup' to install it."
         return 1
     fi
 

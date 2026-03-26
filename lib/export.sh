@@ -186,7 +186,7 @@ vokun::export::_export_json() {
     local custom_dir="$4"
 
     if ! command -v jq &>/dev/null; then
-        vokun::core::error "jq is required for JSON export. Install it with: sudo pacman -S jq"
+        vokun::core::error "jq is required for JSON export. Run 'vokun setup' to install it."
         return 1
     fi
 
@@ -453,7 +453,7 @@ vokun::export::_import_json() {
     local custom_dir="${VOKUN_CONFIG_DIR}/bundles/custom"
 
     if ! command -v jq &>/dev/null; then
-        vokun::core::error "jq is required for JSON import. Install it with: sudo pacman -S jq"
+        vokun::core::error "jq is required for JSON import. Run 'vokun setup' to install it."
         return 1
     fi
 

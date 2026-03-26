@@ -364,7 +364,7 @@ Every command prints the underlying pacman invocation for transparency.
 ### vokun get
 
 ```
-vokun get <package> [package...] [--overwrite]
+vokun get <package> [package...] [--overwrite] [--downgrade]
 ```
 
 Install one or more packages. Uses paru/yay if available, otherwise pacman.
@@ -374,6 +374,7 @@ install to add the package to an existing bundle or create a new one.
 | Flag | Description |
 |------|-------------|
 | `--overwrite` | Reinstall even if already installed, overwriting conflicting files |
+| `--downgrade` | Downgrade to a previous version. Checks local cache first, falls back to Arch Linux Archive for repo packages. AUR packages are not supported. |
 
 Equivalent to: `sudo pacman -S --needed <package>` (or `sudo pacman -S --overwrite '*' <package>` with `--overwrite`)
 
@@ -433,6 +434,16 @@ vokun owns <file>
 Find which installed package owns a file on the filesystem.
 
 Equivalent to: `pacman -Qo <file>`
+
+### vokun files
+
+```
+vokun files <package>
+```
+
+List all files installed by a package.
+
+Equivalent to: `pacman -Ql <package>`
 
 ### vokun update
 

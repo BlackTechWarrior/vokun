@@ -138,6 +138,7 @@ case "$command" in
     find)       vokun::aliases::find "${ARGS[@]}" ;;
     which)      vokun::aliases::which "${ARGS[@]}" ;;
     owns)       vokun::aliases::owns "${ARGS[@]}" ;;
+    files)      vokun::aliases::files "${ARGS[@]}" ;;
     update)     vokun::aliases::update "${ARGS[@]}" ;;
 
     # Maintenance

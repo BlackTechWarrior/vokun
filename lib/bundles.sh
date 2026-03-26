@@ -335,7 +335,7 @@ vokun::bundles::_prompt_select() {
         local selected
         selected=$(printf '%s' "$fzf_input" | fzf --no-multi --with-nth=1.. --delimiter=$'\t' \
             --prompt="${label}> " \
-            --header="Select one (ENTER to confirm)" \
+            --header="Select one (ENTER to confirm, ESC to skip)" \
             --no-info 2>/dev/null | cut -f1) || true
 
         if [[ -n "$selected" && "$selected" != "Skip" ]]; then
@@ -860,7 +860,7 @@ vokun::bundles::install() {
                     printf '%s\t%s\n' "$pkg" "$desc"
                 done | fzf --multi --with-nth=1.. --delimiter='\t' \
                     --prompt="Pick packages> " \
-                    --header="TAB to select, ENTER to confirm" | cut -f1
+                    --header="TAB to select, ENTER to confirm, ESC to cancel" | cut -f1
             )
         else
             # Numbered menu fallback

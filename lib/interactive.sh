@@ -104,7 +104,7 @@ vokun::interactive::wizard() {
         # Use fzf for multi-select
         local fzf_result
         fzf_result=$(printf '%s\n' "${categories[@]}" | fzf --multi \
-            --header="Select categories (TAB to toggle, ENTER to confirm)" \
+            --header="Select categories (TAB to toggle, ENTER to confirm, ESC to cancel)" \
             --prompt="Categories> " \
             --no-info 2>/dev/null) || true
 

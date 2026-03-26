@@ -98,6 +98,7 @@ packages. If conflicts are found, you are warned before proceeding.
 
 ```bash
 vokun get     <pkg>             # Install a package          (pacman -S)
+vokun get     <pkg> --downgrade # Downgrade to older version  (pacman -U)
 vokun yeet    <pkg>             # Remove with deps/configs   (pacman -Rns)
 vokun yeet    <pkg> --untrack   # Remove from bundle tracking only
 vokun find    <query>           # Search repos               (pacman -Ss)
@@ -106,6 +107,7 @@ vokun find    <query> --pick    # Search and interactively select to install
 vokun which   <pkg>             # Info on installed package   (pacman -Qi)
 vokun which   <pkg> --remote    # Info on remote/uninstalled  (pacman -Si)
 vokun owns    <file>            # Which package owns a file   (pacman -Qo)
+vokun files   <pkg>             # List files in a package     (pacman -Ql)
 vokun update                    # Full system update          (pacman -Syu)
 vokun update  --aur             # Include AUR packages
 vokun update  --aur-only        # Update only AUR packages    (paru/yay -Sua)

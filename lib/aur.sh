@@ -15,8 +15,8 @@ vokun::aur::check() {
     fi
 
     if ! command -v jq &>/dev/null; then
-        vokun::core::error "jq is required for AUR checking"
-        vokun::core::log "Install it with: sudo pacman -S jq"
+        vokun::core::error "jq is required for AUR checking."
+        vokun::core::log "Run 'vokun setup' to install recommended dependencies."
         return 1
     fi
 

@@ -5,18 +5,29 @@
 # --- vokun get ---
 vokun::aliases::get() {
     local overwrite=false
+    local downgrade=false
     local -a packages=()
 
     for arg in "$@"; do
         case "$arg" in
             --overwrite) overwrite=true ;;
+            --downgrade) downgrade=true ;;
             *) packages+=("$arg") ;;
         esac
     done
 
     if [[ ${#packages[@]} -eq 0 ]]; then
-        vokun::core::error "Usage: vokun get <package> [package...] [--overwrite]"
+        vokun::core::error "Usage: vokun get <package> [package...] [--overwrite] [--downgrade]"
         return 1
+    fi
+
+    if [[ "$downgrade" == true ]]; then
+        if [[ ${#packages[@]} -gt 1 ]]; then
+            vokun::core::error "Downgrade supports one package at a time."
+            return 1
+        fi
+        vokun::aliases::downgrade "${packages[0]}"
+        return $?
     fi
 
     if [[ "$overwrite" == true ]]; then
@@ -74,6 +85,166 @@ vokun::aliases::get() {
     fi
 
     return $exit_code
+}
+
+# --- vokun get --downgrade ---
+vokun::aliases::downgrade() {
+    local pkg="$1"
+    local arch
+    arch=$(uname -m)
+    local cache_dir="/var/cache/pacman/pkg"
+
+    # Check if the package is installed at all
+    if ! pacman -Qi "$pkg" &>/dev/null; then
+        vokun::core::error "'$pkg' is not installed — nothing to downgrade."
+        return 1
+    fi
+
+    local current_ver
+    current_ver=$(pacman -Q "$pkg" 2>/dev/null | awk '{print $2}')
+
+    # Check if it's an AUR/foreign package
+    if pacman -Qm "$pkg" &>/dev/null; then
+        vokun::core::error "'$pkg' is a foreign/AUR package."
+        vokun::core::log "AUR packages are not available in the Arch Linux Archive."
+        vokun::core::log "Rebuild an older version manually with your AUR helper."
+        return 1
+    fi
+
+    printf '\n%sDowngrade: %s%s (current: %s)\n' \
+        "$VOKUN_COLOR_BOLD" "$pkg" "$VOKUN_COLOR_RESET" "$current_ver"
+    printf '%s\n\n' "$(printf '%.0s─' {1..50})"
+
+    # Step 1: Check local cache for older versions
+    local -a cached_versions=()
+    if [[ -d "$cache_dir" ]]; then
+        while IFS= read -r file; do
+            [[ -z "$file" ]] && continue
+            cached_versions+=("$file")
+        done < <(find "$cache_dir" -maxdepth 1 -name "${pkg}-[0-9]*.pkg.tar.*" \
+            ! -name "${pkg}-${current_ver}-*.pkg.tar.*" 2>/dev/null | \
+            grep -E "-(${arch}|any)\.pkg\.tar\." | sort -V)
+    fi
+
+    local selected=""
+
+    if [[ ${#cached_versions[@]} -gt 0 ]]; then
+        vokun::core::info "Found ${#cached_versions[@]} cached version(s):"
+        printf '\n'
+
+        # Build display list (basename only for readability)
+        local -a display_names=()
+        for f in "${cached_versions[@]}"; do
+            display_names+=("$(basename "$f")")
+        done
+
+        if command -v fzf &>/dev/null && [[ "${VOKUN_FZF:-true}" == "true" ]]; then
+            local picked
+            picked=$(printf '%s\n' "${display_names[@]}" | \
+                fzf --prompt="Select version (ESC for ALA): " \
+                    --header="Local cache — ENTER to select, ESC to check ALA instead" 2>/dev/tty) || true
+            if [[ -n "$picked" ]]; then
+                selected="${cache_dir}/${picked}"
+            fi
+        else
+            local i=1
+            for name in "${display_names[@]}"; do
+                printf '  %s%d)%s %s\n' "$VOKUN_COLOR_BOLD" "$i" "$VOKUN_COLOR_RESET" "$name"
+                ((i++))
+            done
+            printf '\n  Enter number (empty to check Arch Linux Archive): '
+            local reply
+            read -r reply
+            if [[ "$reply" =~ ^[0-9]+$ ]] && (( reply >= 1 && reply <= ${#cached_versions[@]} )); then
+                selected="${cached_versions[$((reply-1))]}"
+            fi
+        fi
+    fi
+
+    # Step 2: Fall back to Arch Linux Archive if no local selection
+    if [[ -z "$selected" ]]; then
+        vokun::core::info "Checking Arch Linux Archive..."
+        local first_letter="${pkg:0:1}"
+        local ala_url="https://archive.archlinux.org/packages/${first_letter}/${pkg}/"
+
+        local ala_listing
+        ala_listing=$(curl -sL "$ala_url" 2>/dev/null) || {
+            vokun::core::error "Failed to fetch package listing from ALA."
+            vokun::core::log "URL: $ala_url"
+            return 1
+        }
+
+        # Parse package filenames from the directory listing
+        local -a ala_versions=()
+        while IFS= read -r filename; do
+            [[ -z "$filename" ]] && continue
+            ala_versions+=("$filename")
+        done < <(printf '%s\n' "$ala_listing" | \
+            grep -oP 'href="\K'"${pkg}"'-[0-9][^"]*\.pkg\.tar\.[^"]+' | \
+            grep -E "-(${arch}|any)\.pkg\.tar\." | \
+            grep -v "${current_ver}" | \
+            sort -V)
+
+        if [[ ${#ala_versions[@]} -eq 0 ]]; then
+            vokun::core::error "No other versions found in the Arch Linux Archive."
+            return 1
+        fi
+
+        vokun::core::info "Found ${#ala_versions[@]} version(s) in ALA:"
+        printf '\n'
+
+        local ala_picked=""
+        if command -v fzf &>/dev/null && [[ "${VOKUN_FZF:-true}" == "true" ]]; then
+            ala_picked=$(printf '%s\n' "${ala_versions[@]}" | \
+                fzf --prompt="Select version: " --tac \
+                    --header="Arch Linux Archive — ENTER to select, ESC to cancel" 2>/dev/tty) || true
+        else
+            # Show last 20 for readability (most recent at bottom)
+            local -a show_versions=("${ala_versions[@]}")
+            if [[ ${#show_versions[@]} -gt 20 ]]; then
+                vokun::core::info "Showing most recent 20 of ${#ala_versions[@]} versions."
+                show_versions=("${ala_versions[@]: -20}")
+            fi
+            local i=1
+            for name in "${show_versions[@]}"; do
+                printf '  %s%d)%s %s\n' "$VOKUN_COLOR_BOLD" "$i" "$VOKUN_COLOR_RESET" "$name"
+                ((i++))
+            done
+            printf '\n  Enter number (empty to cancel): '
+            local reply
+            read -r reply
+            if [[ "$reply" =~ ^[0-9]+$ ]] && (( reply >= 1 && reply <= ${#show_versions[@]} )); then
+                ala_picked="${show_versions[$((reply-1))]}"
+            fi
+        fi
+
+        if [[ -z "$ala_picked" ]]; then
+            vokun::core::log "Downgrade cancelled."
+            return 0
+        fi
+
+        selected="${ala_url}${ala_picked}"
+    fi
+
+    # Step 3: Install the selected version
+    printf '\n'
+    if ! vokun::core::confirm "Downgrade '$pkg' to selected version?"; then
+        vokun::core::log "Downgrade cancelled."
+        return 0
+    fi
+
+    vokun::core::run_pacman_only "-U" "$selected" || {
+        vokun::core::error "Downgrade failed."
+        return 1
+    }
+
+    vokun::core::log_action "get" "$pkg" "downgrade from $current_ver"
+
+    # Warn about future updates
+    printf '\n'
+    vokun::core::warn "The next 'vokun update' will upgrade this package again."
+    vokun::core::log "  To prevent this, add to IgnorePkg in /etc/pacman.conf:"
+    vokun::core::log "    IgnorePkg = $pkg"
 }
 
 # --- vokun yeet ---
@@ -182,7 +353,7 @@ vokun::aliases::find() {
             mapfile -t selected < <(
                 printf '%s\n' "${pkg_lines[@]}" | \
                 fzf --multi --prompt="Select packages to install: " \
-                    --header="TAB to select, ENTER to confirm" 2>/dev/tty
+                    --header="TAB to select, ENTER to confirm, ESC to cancel" 2>/dev/tty
             )
         else
             # Numbered fallback
@@ -267,6 +438,16 @@ vokun::aliases::owns() {
     fi
 
     vokun::core::run_pacman_only "-Qo" "$@"
+}
+
+# --- vokun files ---
+vokun::aliases::files() {
+    if [[ $# -eq 0 ]]; then
+        vokun::core::error "Usage: vokun files <package>"
+        return 1
+    fi
+
+    vokun::core::run_pacman_only "-Ql" "$@"
 }
 
 # --- vokun update ---
@@ -430,6 +611,24 @@ vokun::aliases::orphans() {
 }
 
 # --- vokun cache ---
+
+# Ensure paccache is available, offer to install if missing
+vokun::aliases::require_paccache() {
+    if command -v paccache &>/dev/null; then
+        return 0
+    fi
+
+    vokun::core::warn "paccache not found (provided by pacman-contrib)."
+    if vokun::core::confirm "Install pacman-contrib?"; then
+        vokun::core::run_pacman_only "-S" "--needed" "pacman-contrib" || return 1
+        printf '\n'
+        return 0
+    else
+        vokun::core::log "  Run 'vokun setup' to install all dependencies."
+        return 1
+    fi
+}
+
 vokun::aliases::cache() {
     local action=""
 
@@ -442,20 +641,12 @@ vokun::aliases::cache() {
 
     case "$action" in
         clean)
-            if ! command -v paccache &>/dev/null; then
-                vokun::core::error "paccache not found. Install pacman-contrib:"
-                vokun::core::log "  vokun get pacman-contrib"
-                return 1
-            fi
+            vokun::aliases::require_paccache || return 1
             vokun::core::show_cmd "sudo paccache -rk2"
             sudo paccache -rk2
             ;;
         purge)
-            if ! command -v paccache &>/dev/null; then
-                vokun::core::error "paccache not found. Install pacman-contrib:"
-                vokun::core::log "  vokun get pacman-contrib"
-                return 1
-            fi
+            vokun::aliases::require_paccache || return 1
             vokun::core::warn "This will remove ALL cached packages!"
             if vokun::core::confirm "Continue?"; then
                 vokun::core::show_cmd "sudo paccache -rk0"
