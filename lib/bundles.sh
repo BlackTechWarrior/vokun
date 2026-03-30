@@ -256,8 +256,7 @@ vokun::bundles::_run_hooks() {
     while IFS= read -r hook_cmd; do
         [[ -z "$hook_cmd" ]] && continue
         vokun::core::show_cmd "$hook_cmd"
-        # shellcheck disable=SC2294
-        eval "$hook_cmd" || {
+        bash -c "$hook_cmd" || {
             vokun::core::error "Hook failed: $hook_cmd"
             return 1
         }
@@ -838,6 +837,12 @@ vokun::bundles::install() {
                 aur_packages+=("$pkg")
             fi
         done <<< "$aur_keys"
+    fi
+
+    # Warn if the bundle TOML yielded zero packages
+    if [[ -z "$pkg_keys" && -z "$aur_keys" ]]; then
+        vokun::core::warn "Bundle '$name' contains no packages. Check the TOML file."
+        return 1
     fi
 
     # --- Filtering: --pick, --exclude, --only ---

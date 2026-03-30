@@ -69,7 +69,7 @@ _vokun() {
             ;;
         yeet)
             if [[ "$cur" == --* ]]; then
-                COMPREPLY=( $(compgen -W "--untrack" -- "$cur") )
+                COMPREPLY=( $(compgen -W "--untrack --force --dry-run" -- "$cur") )
             fi
             ;;
         cache)

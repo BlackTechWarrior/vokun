@@ -673,19 +673,23 @@ EOF
             ;;
         yeet)
             cat <<EOF
-${VOKUN_COLOR_BOLD}vokun yeet${VOKUN_COLOR_RESET} <package> [package...] [--untrack]
+${VOKUN_COLOR_BOLD}vokun yeet${VOKUN_COLOR_RESET} <package> [package...] [--untrack] [--force] [--dry-run]
 
 Remove packages along with their unneeded dependencies and config files.
-Warns if the package belongs to an installed bundle.
+Blocks removal if the package belongs to an installed bundle (use --force to override).
 
 ${VOKUN_COLOR_DIM}Equivalent to: sudo pacman -Rns <package>${VOKUN_COLOR_RESET}
 
 ${VOKUN_COLOR_BOLD}Examples:${VOKUN_COLOR_RESET}
     vokun yeet firefox                        # Remove package from system
     vokun yeet bat --untrack                  # Remove from bundle tracking only, keep installed
+    vokun yeet git --force                    # Remove even if bundle-tracked (updates state)
+    vokun yeet firefox --dry-run              # Preview without removing
 
 ${VOKUN_COLOR_BOLD}Flags:${VOKUN_COLOR_RESET}
     --untrack              Remove from bundle tracking only, keep package on system
+    --force                Force removal of bundle-tracked packages (also updates bundle state)
+    --dry-run              Show what would be removed without making changes
 EOF
             ;;
         find)

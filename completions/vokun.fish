@@ -90,6 +90,8 @@ complete -c vokun -n "__fish_seen_subcommand_from which"   -l remote -d "Query r
 
 # yeet completes with flags
 complete -c vokun -n "__fish_seen_subcommand_from yeet"    -l untrack -d "Remove from bundle tracking only"
+complete -c vokun -n "__fish_seen_subcommand_from yeet"    -l force   -d "Force removal of bundle-tracked packages"
+complete -c vokun -n "__fish_seen_subcommand_from yeet"    -l dry-run -d "Preview without removing"
 
 # cache completes with flags
 complete -c vokun -n "__fish_seen_subcommand_from cache"   -l clean   -d "Keep last 2 versions"

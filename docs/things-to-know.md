@@ -87,11 +87,13 @@ Disable this with `auto_prompt = false` in `vokun.conf`.
 
 ---
 
-## vokun yeet warns but does not block
+## vokun yeet blocks removal of bundle-tracked packages
 
-If you `vokun yeet` a package that belongs to an installed bundle, vokun warns
-you but proceeds with the removal. It does not block you from removing it. The
-bundle's state will be out of sync until you run `vokun sync`.
+If you `vokun yeet` a package that belongs to an installed bundle, vokun blocks
+the removal to prevent silent drift between your bundles and your system. Use
+`--force` to override — this removes the package and updates the bundle's state
+to reflect the change. Use `--untrack` to remove the package from bundle
+tracking without touching the system.
 
 ---
 
@@ -125,6 +127,17 @@ Running `vokun update --aur-only` updates AUR packages without a full system
 update (`pacman -Syu`). This can cause dependency mismatches between AUR packages
 and system libraries. Vokun warns you about this and offers to run a full update
 instead. If you proceed anyway, you accept the risk.
+
+---
+
+## Snapshots match packages, not versions
+
+`vokun snapshot restore` ensures that the same set of packages is installed, but
+it does not pin or restore specific package versions. If you created a snapshot
+with `mesa 24.1` and later upgraded to `mesa 24.2`, restoring that snapshot will
+keep `mesa 24.2` because the package is already present. Snapshots are about
+**which packages** are on your system, not **which versions**. To pin a specific
+version, add the package to `IgnorePkg` in `/etc/pacman.conf`.
 
 ---
 
