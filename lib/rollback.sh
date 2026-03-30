@@ -98,8 +98,9 @@ vokun::rollback::run() {
                 return 0
             fi
 
-            # shellcheck disable=SC2086
-            vokun::core::run_pacman_only "-Rns" $target
+            local -a target_pkgs
+            read -ra target_pkgs <<< "$target"
+            vokun::core::run_pacman_only "-Rns" "${target_pkgs[@]}"
             vokun::core::log_action "rollback" "$target" "undid get"
             ;;
 
@@ -117,8 +118,9 @@ vokun::rollback::run() {
                 return 0
             fi
 
-            # shellcheck disable=SC2086
-            vokun::core::run_pacman "-S" "--needed" $target
+            local -a target_pkgs
+            read -ra target_pkgs <<< "$target"
+            vokun::core::run_pacman "-S" "--needed" "${target_pkgs[@]}"
             vokun::core::log_action "rollback" "$target" "undid yeet"
             ;;
 

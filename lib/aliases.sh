@@ -250,24 +250,29 @@ vokun::aliases::downgrade() {
 # --- vokun yeet ---
 vokun::aliases::yeet() {
     local untrack_only=false
+    local force=false
+    local dry_run=false
     local -a packages=()
 
     for arg in "$@"; do
         case "$arg" in
             --untrack) untrack_only=true ;;
+            --force) force=true ;;
+            --dry-run) dry_run=true ;;
             *) packages+=("$arg") ;;
         esac
     done
 
     if [[ ${#packages[@]} -eq 0 ]]; then
-        vokun::core::error "Usage: vokun yeet <package> [package...] [--untrack]"
+        vokun::core::error "Usage: vokun yeet <package> [package...] [--untrack] [--force] [--dry-run]"
         return 1
     fi
 
-    # Check if any packages are in bundles and remove from tracking
+    # Check if any packages are in bundles
     local -a installed_bundles
     mapfile -t installed_bundles < <(vokun::state::get_installed_bundles)
 
+    local -a bundle_tracked=()
     for pkg in "${packages[@]}"; do
         for bundle in "${installed_bundles[@]}"; do
             local bundle_pkgs
@@ -282,7 +287,7 @@ vokun::aliases::yeet() {
                         "$VOKUN_STATE_FILE" > "$tmp" && mv "$tmp" "$VOKUN_STATE_FILE"
                     vokun::core::success "Untracked '$pkg' from bundle '$bundle'."
                 else
-                    vokun::core::warn "'$pkg' belongs to bundle '$bundle'"
+                    bundle_tracked+=("$pkg ($bundle)")
                 fi
             fi
         done
@@ -291,6 +296,43 @@ vokun::aliases::yeet() {
     if [[ "$untrack_only" == true ]]; then
         vokun::core::log_action "untrack" "${packages[*]}" ""
         return 0
+    fi
+
+    # Block removal of bundle-tracked packages unless --force is used
+    if [[ ${#bundle_tracked[@]} -gt 0 ]]; then
+        for entry in "${bundle_tracked[@]}"; do
+            vokun::core::warn "'$entry' belongs to a bundle"
+        done
+        if [[ "$force" != true ]]; then
+            vokun::core::error "Use --force to remove bundle-tracked packages, or --untrack to remove from tracking only."
+            return 1
+        fi
+        vokun::core::warn "Forcing removal of bundle-tracked packages."
+    fi
+
+    if [[ "$dry_run" == true ]]; then
+        printf '\n  %s[DRY RUN] Command that would be executed:%s\n\n' "$VOKUN_COLOR_YELLOW" "$VOKUN_COLOR_RESET"
+        printf '    sudo pacman -Rns %s\n' "${packages[*]}"
+        printf '\n  %sNo changes were made.%s\n\n' "$VOKUN_COLOR_DIM" "$VOKUN_COLOR_RESET"
+        return 0
+    fi
+
+    # Update state to remove packages from their bundles (only after dry-run check)
+    if [[ ${#bundle_tracked[@]} -gt 0 && "$force" == true ]]; then
+        for pkg in "${packages[@]}"; do
+            for bundle in "${installed_bundles[@]}"; do
+                local bundle_pkgs
+                bundle_pkgs=$(vokun::state::get_bundle_packages "$bundle")
+                if echo "$bundle_pkgs" | grep -qx "$pkg"; then
+                    local tmp
+                    tmp=$(mktemp)
+                    jq --arg b "$bundle" --arg p "$pkg" \
+                        '.installed_bundles[$b].packages = [.installed_bundles[$b].packages[] | select(. != $p)]' \
+                        "$VOKUN_STATE_FILE" > "$tmp" && mv "$tmp" "$VOKUN_STATE_FILE"
+                    vokun::core::log "Untracked '$pkg' from bundle '$bundle'."
+                fi
+            done
+        done
     fi
 
     vokun::core::run_pacman_only "-Rns" "${packages[@]}" && vokun::core::log_action "yeet" "${packages[*]}" ""
@@ -582,15 +624,16 @@ vokun::aliases::orphans() {
             return 0
         fi
 
+        local -a orphan_arr
+        mapfile -t orphan_arr <<< "$orphans"
+
         vokun::core::info "Removing orphaned packages:"
         printf '%s\n' "$orphans"
         printf '\n'
 
         if vokun::core::confirm "Remove these packages?"; then
-            # shellcheck disable=SC2086
-            vokun::core::show_cmd "sudo pacman -Rns $orphans"
-            # shellcheck disable=SC2086
-            sudo pacman -Rns $orphans
+            vokun::core::show_cmd "sudo pacman -Rns ${orphan_arr[*]}"
+            sudo pacman -Rns "${orphan_arr[@]}"
         fi
     else
         vokun::core::show_cmd "pacman -Qdt"

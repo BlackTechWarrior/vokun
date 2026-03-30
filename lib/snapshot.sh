@@ -277,6 +277,11 @@ vokun::snapshot::restore() {
         return 1
     fi
 
+    if [[ -z "$VOKUN_SNAPSHOT_DIR" ]]; then
+        vokun::core::error "Snapshot system not initialized"
+        return 1
+    fi
+
     local snapshot_dir="${VOKUN_SNAPSHOT_DIR}/${name}"
     if [[ ! -d "$snapshot_dir" ]]; then
         vokun::core::error "Snapshot not found: $name"
@@ -285,6 +290,14 @@ vokun::snapshot::restore() {
 
     if [[ ! -f "${snapshot_dir}/packages.txt" ]]; then
         vokun::core::error "Snapshot is corrupt: missing packages.txt"
+        return 1
+    fi
+
+    # Sanity check: snapshot must contain at least one package
+    local snapshot_pkg_count
+    snapshot_pkg_count=$(wc -l < "${snapshot_dir}/packages.txt")
+    if [[ "$snapshot_pkg_count" -eq 0 ]]; then
+        vokun::core::error "Snapshot is corrupt: packages.txt is empty"
         return 1
     fi
 
@@ -363,7 +376,8 @@ vokun::snapshot::restore() {
         local -a install_arr
         mapfile -t install_arr <<< "$to_install"
         vokun::core::run_pacman "-S" "--needed" "${install_arr[@]}" || {
-            vokun::core::error "Some packages failed to install"
+            vokun::core::error "Some packages failed to install. Aborting restore before removal phase."
+            return 1
         }
     fi
 
@@ -405,6 +419,11 @@ vokun::snapshot::delete() {
 
     if [[ -z "$name" ]]; then
         vokun::core::error "Usage: vokun snapshot delete <name>"
+        return 1
+    fi
+
+    if [[ -z "$VOKUN_SNAPSHOT_DIR" ]]; then
+        vokun::core::error "Snapshot system not initialized"
         return 1
     fi
 

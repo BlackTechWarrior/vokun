@@ -94,7 +94,9 @@ _vokun() {
                     ;;
                 yeet)
                     _arguments \
-                        '--untrack[Remove from bundle tracking only]'
+                        '--untrack[Remove from bundle tracking only]' \
+                        '--force[Force removal of bundle-tracked packages]' \
+                        '--dry-run[Preview without removing]'
                     ;;
                 export)
                     _arguments \

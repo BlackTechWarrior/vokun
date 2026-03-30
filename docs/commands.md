@@ -381,15 +381,27 @@ Equivalent to: `sudo pacman -S --needed <package>` (or `sudo pacman -S --overwri
 ### vokun yeet
 
 ```
-vokun yeet <package> [package...] [--untrack]
+vokun yeet <package> [package...] [--untrack] [--force] [--dry-run]
 ```
 
-Remove packages along with unneeded dependencies and configuration files. Warns
-if a package belongs to an installed bundle.
+Remove packages along with unneeded dependencies and configuration files. If a
+package belongs to an installed bundle, removal is blocked unless `--force` is
+used. When forced, the bundle's state is updated to reflect the removal.
 
 | Flag | Description |
 |------|-------------|
 | `--untrack` | Remove the package from bundle tracking only, keep it installed |
+| `--force` | Force removal of bundle-tracked packages (also updates bundle state) |
+| `--dry-run` | Show what would be removed without making changes |
+
+Examples:
+
+```bash
+vokun yeet firefox                        # Remove package from system
+vokun yeet bat --untrack                  # Remove from bundle tracking only
+vokun yeet git --force                    # Remove even if bundle-tracked
+vokun yeet firefox --dry-run              # Preview without removing
+```
 
 Equivalent to: `sudo pacman -Rns <package>`
 
@@ -499,9 +511,10 @@ vokun import <file> [--dry]
 Import bundles and configuration from a previously exported file. Pass `--dry`
 to preview the changes without writing anything to disk.
 
-**Hook safety:** If any imported bundle contains `post_install` hooks, vokun
-displays the commands for review before asking you to confirm the import. This
-prevents blindly executing arbitrary shell commands from untrusted exports.
+**Hook safety:** If any imported bundle contains lifecycle hooks (`pre_install`,
+`post_install`, `pre_remove`, `post_remove`), vokun displays the commands for
+review before asking you to confirm the import. This prevents blindly executing
+arbitrary shell commands from untrusted exports.
 
 ---
 
